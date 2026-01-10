@@ -1,3 +1,4 @@
+
 name: Build RPM Packages
 
 on:
@@ -6,17 +7,19 @@ on:
       package:
         required: true
         type: string
-        description: "Package name to build (e.g., postfix)"
       version:
         required: true
         type: string
-        description: "Version to build (e.g., 3.8.4)"
   workflow_dispatch:
     inputs:
       package:
         required: true
         type: string
-        description: "Package name to build (e.g., postfix)"
+        description: "Package name (e.g., postfix)"
+      version:
+        required: true
+        type: string
+        description: "Version (e.g., 3.8.4)"
 
 permissions:
   contents: write
@@ -36,14 +39,13 @@ jobs:
       options: --privileged
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install build dependencies
         run: |
           dnf install -y epel-release rpm-build rpmdevtools dnf-plugins-core
           dnf install -y gcc-toolset-15-gcc gcc-toolset-15-gcc-plugin-annobin gcc-toolset-15-gcc-c++ tar
-          if [ "${{ matrix.rhel_version }}" == "9" ]; then
+          if [ "${{ matrix.rhel_version }}" = "9" ]; then
             dnf config-manager --set-enabled crb
           fi
 
@@ -55,16 +57,17 @@ jobs:
       - name: Copy SPEC file
         run: |
           if [ -f "${{ inputs.package }}/${{ inputs.package }}.spec" ]; then
-            cp ${{ inputs.package }}/${{ inputs.package }}.spec /root/rpmbuild/SPECS/
+            cp "${{ inputs.package }}/${{ inputs.package }}.spec" /root/rpmbuild/SPECS/
           else
             echo "No SPEC file found for ${{ inputs.package }}"
             exit 1
           fi
+
       - name: Copy sources to SOURCES directory
         run: |
           if [ -d "${{ inputs.package }}/sources" ]; then
             echo "Copying sources from ${{ inputs.package }}/sources"
-            cp ${{ inputs.package }}/sources/* /root/rpmbuild/SOURCES/
+            cp "${{ inputs.package }}/sources/"* /root/rpmbuild/SOURCES/
             ls -lh /root/rpmbuild/SOURCES/
           else
             echo "No sources directory found for ${{ inputs.package }}"
@@ -72,57 +75,51 @@ jobs:
 
       - name: Install build dependencies from SPEC
         run: |
-          dnf builddep -y /root/rpmbuild/SPECS/${{ inputs.package }}.spec
+          dnf builddep -y "/root/rpmbuild/SPECS/${{ inputs.package }}.spec"
 
       - name: Build RPM
         run: |
-          rpmbuild -ba /root/rpmbuild/SPECS/${{ inputs.package }}.spec
+          rpmbuild -ba "/root/rpmbuild/SPECS/${{ inputs.package }}.spec"
 
-      - name: List built packages
+      - name: Collect RPM outputs
         run: |
-          echo "=== Built RPMs ==="
-          find /root/rpmbuild/RPMS -type f -name "*.rpm"
-          echo "=== Built SRPMs ==="
-          find /root/rpmbuild/SRPMS -type f -name "*.rpm"
+          mkdir -p /workspace/artifacts/${{ matrix.rhel_version }}
+          cp /root/rpmbuild/RPMS/*/*.rpm /workspace/artifacts/${{ matrix.rhel_version }}/
+          ls -lh /workspace/artifacts/${{ matrix.rhel_version }}/
 
-      - name: Prepare artifacts for upload
-        run: |
-          mkdir -p /tmp/artifacts
-          find /root/rpmbuild/RPMS -type f -name "*.rpm" -exec cp {} /tmp/artifacts/ \;
-          find /root/rpmbuild/SRPMS -type f -name "*.rpm" -exec cp {} /tmp/artifacts/ \;
-          ls -lh /tmp/artifacts/
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4.4.3
+      - name: Upload RPM artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.package }}-rhel${{ matrix.rhel_version }}-rpm
-          path: /tmp/artifacts/*.rpm
+          name: "${{ inputs.package }}-${{ inputs.version }}-rhel${{ matrix.rhel_version }}"
+          path: /workspace/artifacts/${{ matrix.rhel_version }}/*.rpm
           if-no-files-found: error
 
-  create-release:
-    name: Create GitHub Release
-    needs: build-rpm
+  release:
+    name: Publish Release
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-
+    needs: build-rpm
     steps:
-      - name: Download all artifacts
+      - uses: actions/checkout@v4
+
+      - name: Download all RPM artifacts
         uses: actions/download-artifact@v4
         with:
-          path: artifacts
+          path: dist
 
-      - name: Display structure of downloaded files
-        run: ls -R artifacts
+      - name: List downloaded files
+        run: |
+          find dist -type f -name '*.rpm' -print
+          test -n "$(find dist -type f -name '*.rpm')" || { echo "No RPMs found"; exit 1; }
 
-      - name: Create Release
+      - name: Create GitHub Release and upload RPMs
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.package }}-${{ inputs.version }}
           name: ${{ inputs.package }} ${{ inputs.version }}
-          draft: false
           prerelease: false
           files: |
-            artifacts/**/*.rpm
+            dist/**/*.rpm
+          fail_on_missing_files: true
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
