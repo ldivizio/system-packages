@@ -46,8 +46,8 @@ jobs:
 
       - name: Setup RPM build environment
         run: |
-          rpmdev-setuptree
           echo "%_topdir /root/rpmbuild" > ~/.rpmmacros
+          rpmdev-setuptree
 
       - name: Copy SPEC file
         run: |
