@@ -15,11 +15,11 @@ on:
       package:
         required: true
         type: string
-        description: "Package name (e.g., postfix)"
-      version:
+        description: "Package name"
+      build:
         required: true
         type: string
-        description: "Version (e.g., 3.8.4)"
+        description: "Build number"
 
 permissions:
   contents: write
@@ -67,8 +67,7 @@ jobs:
         run: |
           if [ -d "${{ inputs.package }}/sources" ]; then
             echo "Copying sources from ${{ inputs.package }}/sources"
-            cp "${{ inputs.package }}/sources/"* /root/rpmbuild/SOURCES/
-            ls -lh /root/rpmbuild/SOURCES/
+            cp "${{ inputs.package }}/sources/"* /root/rpmbuild/SOURCES/            
           else
             echo "No sources directory found for ${{ inputs.package }}"
           fi
@@ -79,19 +78,20 @@ jobs:
 
       - name: Build RPM
         run: |
-          rpmbuild -ba "/root/rpmbuild/SPECS/${{ inputs.package }}.spec"
+          rpmbuild -bb "/root/rpmbuild/SPECS/${{ inputs.package }}.spec"
 
-      - name: Collect RPM outputs
-        run: |
-          mkdir -p /workspace/artifacts/${{ matrix.rhel_version }}
-          cp /root/rpmbuild/RPMS/*/*.rpm /workspace/artifacts/${{ matrix.rhel_version }}/
-          ls -lh /workspace/artifacts/${{ matrix.rhel_version }}/
+      # - name: Collect RPM outputs
+      #   run: |
+      #     mkdir -p /workspace/artifacts/${{ matrix.rhel_version }}
+      #     cp /root/rpmbuild/RPMS/*/*.rpm /workspace/artifacts/${{ matrix.rhel_version }}/
+      #     ls -lh /workspace/artifacts/${{ matrix.rhel_version }}/
 
       - name: Upload RPM artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: "${{ inputs.package }}-${{ inputs.version }}-rhel${{ matrix.rhel_version }}"
-          path: /workspace/artifacts/${{ matrix.rhel_version }}/*.rpm
+          name: "${{ inputs.package }}-${{ inputs.build }}-rhel${{ matrix.rhel_version }}"
+          #path: /workspace/artifacts/${{ matrix.rhel_version }}/*.rpm
+          path: /root/rpmbuild/RPMS/*/*.rpm
           if-no-files-found: error
 
   release:
@@ -114,12 +114,11 @@ jobs:
       - name: Create GitHub Release and upload RPMs
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ inputs.package }}-${{ inputs.version }}
-          name: ${{ inputs.package }} ${{ inputs.version }}
+          tag_name: ${{ inputs.package }}-${{ inputs.build }}
+          name: ${{ inputs.package }} ${{ inputs.build }}
           prerelease: false
           files: |
-            dist/**/*.rpm
+            dist/*/*.rpm
           fail_on_missing_files: true
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
