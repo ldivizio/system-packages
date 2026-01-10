@@ -17,10 +17,6 @@ on:
         required: true
         type: string
         description: "Package name to build (e.g., postfix)"
-      version:
-        required: true
-        type: string
-        description: "Version to build (e.g., 3.8.4)"
 
 permissions:
   contents: read
@@ -75,8 +71,7 @@ jobs:
 
       - name: Build RPM
         run: |
-          rpmbuild -ba /root/rpmbuild/SPECS/${{ inputs.package }}.spec \
-            --define "version ${{ inputs.version }}"
+          rpmbuild -ba /root/rpmbuild/SPECS/${{ inputs.package }}.spec
 
       - name: List built packages
         run: |
