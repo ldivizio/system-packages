@@ -1,4 +1,3 @@
-
 name: Build RPM Packages
 
 on:
@@ -43,11 +42,12 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          dnf install -y epel-release rpm-build rpmdevtools dnf-plugins-core
-          dnf install -y gcc-toolset-15-gcc gcc-toolset-15-gcc-plugin-annobin gcc-toolset-15-gcc-c++ tar
+          dnf install -y epel-release rpm-build rpmdevtools tar dnf-plugins-core \
+            gcc-toolset-15-gcc gcc-toolset-15-gcc-plugin-annobin gcc-toolset-15-gcc-c++
           if [ "${{ matrix.rhel_version }}" = "9" ]; then
             dnf config-manager --set-enabled crb
           fi
+          ls -lh /opt/rh
 
       - name: Setup RPM build environment
         run: |
@@ -78,14 +78,10 @@ jobs:
 
       - name: Build RPM
         run: |
-          source /opt/rh/gcc-toolset-15/enable
+          if [ "${{ matrix.rhel_version }}" = "9" ]; then
+            source /opt/rh/gcc-toolset-15/enable
+          fi
           rpmbuild -bb "/root/rpmbuild/SPECS/${{ inputs.package }}.spec"
-
-      # - name: Collect RPM outputs
-      #   run: |
-      #     mkdir -p /workspace/artifacts/${{ matrix.rhel_version }}
-      #     cp /root/rpmbuild/RPMS/*/*.rpm /workspace/artifacts/${{ matrix.rhel_version }}/
-      #     ls -lh /workspace/artifacts/${{ matrix.rhel_version }}/
 
       - name: Upload RPM artifacts
         uses: actions/upload-artifact@v4
