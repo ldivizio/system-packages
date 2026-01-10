@@ -1,0 +1,2 @@
+d /run/poolmon 0755 poolmon poolmon -
+d /var/log/poolmon 0755 poolmon poolmon -

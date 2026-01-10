@@ -1,0 +1,21 @@
+[Unit]
+Description=Dovecot monitor service
+After=network.target syslog.target
+
+[Service]
+Type=simple
+PIDFile=/run/poolmon.pid
+EnvironmentFile=-/etc/sysconfig/poolmon
+ExecStart=/usr/bin/poolmon -f $OPTIONS
+ExecStop=/bin/kill -TERM $MAINPID
+Restart=on-failure
+
+PrivateTmp=true
+ProtectSystem=true
+ProtectHome=true
+PrivateDevices=true
+NoNewPrivileges=true
+CapabilityBoundingSet=~ CAP_NET_ADMIN CAP_SYS_ADMIN CAP_SYS_BOOT CAP_SYS_MODULE
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,2 @@
+u rspamd 601 - /var/lib/rspamd /sbin/nologin
+g rspamd 601

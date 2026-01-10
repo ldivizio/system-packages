@@ -1,0 +1,135 @@
+diff -up dovecot-2.4.2/src/lib/istream.c.fixbuild dovecot-2.4.2/src/lib/istream.c
+--- dovecot-2.4.2/src/lib/istream.c.fixbuild	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2/src/lib/istream.c	2025-11-30 11:40:37.739536137 +0100
+@@ -85,7 +85,7 @@ void i_stream_add_destroy_callback(struc
+ }
+ 
+ void i_stream_remove_destroy_callback(struct istream *stream,
+-				      void (*callback)())
++				      istream_callback_t *callback)
+ {
+ 	io_stream_remove_destroy_callback(&stream->real_stream->iostream,
+ 					  callback);
+diff -up dovecot-2.4.2/src/lib/istream.h.fixbuild dovecot-2.4.2/src/lib/istream.h
+--- dovecot-2.4.2/src/lib/istream.h.fixbuild	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2/src/lib/istream.h	2025-11-30 11:40:37.739798710 +0100
+@@ -100,7 +100,7 @@ void i_stream_add_destroy_callback(struc
+ 		(istream_callback_t *)callback, context)
+ /* Remove the destroy callback. */
+ void i_stream_remove_destroy_callback(struct istream *stream,
+-				      void (*callback)());
++				      istream_callback_t *callback);
+ 
+ /* Return file descriptor for stream, or -1 if none is available. */
+ int i_stream_get_fd(struct istream *stream);
+diff -up dovecot-2.4.2/src/lib/ostream.c.fixbuild dovecot-2.4.2/src/lib/ostream.c
+--- dovecot-2.4.2/src/lib/ostream.c.fixbuild	2025-11-30 11:42:21.434063550 +0100
++++ dovecot-2.4.2/src/lib/ostream.c	2025-11-30 11:42:55.814100259 +0100
+@@ -127,7 +127,7 @@ void o_stream_add_destroy_callback(struc
+ }
+ 
+ void o_stream_remove_destroy_callback(struct ostream *stream,
+-				      void (*callback)())
++				      ostream_callback_t *callback)
+ {
+ 	io_stream_remove_destroy_callback(&stream->real_stream->iostream,
+ 					  callback);
+diff -up dovecot-2.4.2/src/lib/ostream.h.fixbuild dovecot-2.4.2/src/lib/ostream.h
+--- dovecot-2.4.2/src/lib/ostream.h.fixbuild	2025-11-30 11:42:29.639009602 +0100
++++ dovecot-2.4.2/src/lib/ostream.h	2025-11-30 11:43:20.101652841 +0100
+@@ -127,7 +127,7 @@ void o_stream_add_destroy_callback(struc
+ 		(ostream_callback_t *)callback, context)
+ /* Remove the destroy callback. */
+ void o_stream_remove_destroy_callback(struct ostream *stream,
+-				      void (*callback)());
++				      ostream_callback_t *callback);
+ 
+ /* Mark the stream and all of its parent streams closed. Nothing will be
+    sent after this call. When using ostreams that require writing a trailer,
+diff -up dovecot-2.4.2/src/lib-json/json-istream.c.fixbuild dovecot-2.4.2/src/lib-json/json-istream.c
+--- dovecot-2.4.2/src/lib-json/json-istream.c.fixbuild	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2/src/lib-json/json-istream.c	2025-11-30 12:52:15.970430672 +0100
+@@ -706,7 +706,7 @@ static void json_istream_drop_value_stre
+ 		if (stream->seekable_stream != NULL) {
+ 			i_stream_remove_destroy_callback(
+ 				stream->seekable_stream,
+-				json_istream_drop_seekable_stream);
++				(istream_callback_t *)json_istream_drop_seekable_stream);
+ 			i_stream_unref(&stream->seekable_stream);
+ 		}
+ 	}
+@@ -720,12 +720,12 @@ static void json_istream_consumed_value_
+ 	if (stream->seekable_stream != NULL) {
+ 		i_stream_remove_destroy_callback(
+ 			stream->seekable_stream,
+-			json_istream_drop_seekable_stream);
++			(istream_callback_t *)json_istream_drop_seekable_stream);
+ 	}
+ 	if (stream->value_stream != NULL) {
+ 		i_stream_remove_destroy_callback(
+ 			stream->value_stream,
+-			json_istream_drop_value_stream);
++			(istream_callback_t *)json_istream_drop_value_stream);
+ 	}
+ 	stream->value_stream = NULL;
+ 	stream->seekable_stream = NULL;
+ 		i_stream_remove_destroy_callback(conn->incoming_payload,
+-						 http_client_payload_destroyed);
++						 (istream_callback_t *)http_client_payload_destroyed);
+ 		conn->incoming_payload = NULL;
+ 	}
+ 
+diff -up dovecot-2.4.2/src/lib-http/http-server-connection.c.fixbuild dovecot-2.4.2/src/lib-http/http-server-connection.c
+--- dovecot-2.4.2/src/lib-http/http-server-connection.c.fixbuild	2025-11-30 13:02:24.337384848 +0100
++++ dovecot-2.4.2/src/lib-http/http-server-connection.c	2025-11-30 13:03:14.477064608 +0100
+@@ -1066,7 +1066,7 @@ http_server_connection_disconnect(struct
+ 	if (conn->incoming_payload != NULL) {
+ 		/* The stream is still accessed by lib-http caller. */
+ 		i_stream_remove_destroy_callback(conn->incoming_payload,
+-						 http_server_payload_destroyed);
++						 (istream_callback_t *)http_server_payload_destroyed);
+ 		conn->incoming_payload = NULL;
+ 	}
+ 	if (conn->payload_handler != NULL)
+diff -up dovecot-2.4.2/src/lib-http/http-client-connection.c.fixbuild dovecot-2.4.2/src/lib-http/http-client-connection.c
+--- dovecot-2.4.2/src/lib-http/http-client-connection.c.fixbuild	2025-11-30 12:57:42.670247695 +0100
++++ dovecot-2.4.2/src/lib-http/http-client-connection.c	2025-11-30 13:00:54.862436490 +0100
+@@ -832,7 +832,7 @@ void http_client_connection_request_dest
+ 	   is closed and we don't care about it anymore, so act as though it is
+ 	   destroyed. */
+ 	i_stream_remove_destroy_callback(payload,
+-					 http_client_payload_destroyed);
++					 (istream_callback_t *)http_client_payload_destroyed);
+ 	http_client_payload_destroyed(req);
+ }
+ 
+@@ -888,7 +888,7 @@ http_client_connection_return_response(s
+ 		if (response->payload != NULL) {
+ 			i_stream_remove_destroy_callback(
+ 				conn->incoming_payload,
+-				http_client_payload_destroyed);
++				(istream_callback_t *)http_client_payload_destroyed);
+ 			i_stream_unref(&conn->incoming_payload);
+ 			connection_input_resume(&conn->conn);
+ 		}
+@@ -1731,7 +1731,7 @@ http_client_connection_disconnect(struct
+ 	if (conn->incoming_payload != NULL) {
+ 		/* The stream is still accessed by lib-http caller. */
+ 		i_stream_remove_destroy_callback(conn->incoming_payload,
+-						 http_client_payload_destroyed);
++						 (istream_callback_t *)http_client_payload_destroyed);
+ 		conn->incoming_payload = NULL;
+ 	}
+ 
+diff -up dovecot-2.4.2/src/lib-storage/index/index-mail.c.fixbuild2 dovecot-2.4.2/src/lib-storage/index/index-mail.c
+--- dovecot-2.4.2/src/lib-storage/index/index-mail.c.fixbuild2	2025-11-30 13:48:46.658539149 +0100
++++ dovecot-2.4.2/src/lib-storage/index/index-mail.c	2025-11-30 13:49:47.178158024 +0100
+@@ -1840,7 +1840,7 @@ static void index_mail_close_streams_ful
+ 			   allowed to have references until the mail is closed
+ 			   (but we can't really check that) */
+ 			i_stream_remove_destroy_callback(data->stream,
+-				index_mail_stream_destroy_callback);
++				(istream_callback_t *)index_mail_stream_destroy_callback);
+ 		}
+ 		i_stream_unref(&data->stream);
+ 		/* there must be no references to the mail when the

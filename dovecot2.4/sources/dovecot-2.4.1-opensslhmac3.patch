@@ -1,0 +1,1025 @@
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/auth/auth-token.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/auth/auth-token.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/auth/auth-token.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/auth/auth-token.c	2025-11-30 09:57:55.178213106 +0100
+@@ -162,17 +162,17 @@ void auth_token_deinit(void)
+ const char *auth_token_get(const char *service, const char *session_pid,
+ 			   const char *username, const char *session_id)
+ {
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	unsigned char result[SHA1_RESULTLEN];
+ 
+-	hmac_init(&ctx, (const unsigned char*)username, strlen(username),
++	openssl_hmac_init(&ctx, (const unsigned char*)username, strlen(username),
+ 		  &hash_method_sha1);
+-	hmac_update(&ctx, session_pid, strlen(session_pid));
++	openssl_hmac_update(&ctx, session_pid, strlen(session_pid));
+ 	if (session_id != NULL && *session_id != '\0')
+-		hmac_update(&ctx, session_id, strlen(session_id));
+-	hmac_update(&ctx, service, strlen(service));
+-	hmac_update(&ctx, auth_token_secret, sizeof(auth_token_secret));
+-	hmac_final(&ctx, result);
++		openssl_hmac_update(&ctx, session_id, strlen(session_id));
++	openssl_hmac_update(&ctx, service, strlen(service));
++	openssl_hmac_update(&ctx, auth_token_secret, sizeof(auth_token_secret));
++	openssl_hmac_final(&ctx, result);
+ 
+ 	return binary_to_hex(result, sizeof(result));
+ }
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/auth/Makefile.am.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/auth/Makefile.am
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/auth/Makefile.am.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/auth/Makefile.am	2025-11-30 09:57:55.178490134 +0100
+@@ -71,6 +71,7 @@ auth_LDFLAGS = -export-dynamic
+ auth_libs = \
+ 	../lib-auth/libauth-crypt.la \
+ 	$(AUTH_LUA_LIBS) \
++	$(SSL_LIBS) \
+ 	$(LIBDOVECOT_SQL)
+ 
+ auth_CPPFLAGS = $(AM_CPPFLAGS) $(BINARY_CFLAGS)
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/imap/Makefile.am.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/imap/Makefile.am
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/imap/Makefile.am.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/imap/Makefile.am	2025-11-30 09:57:55.179136544 +0100
+@@ -21,11 +21,13 @@ AM_CPPFLAGS = \
+ 	$(BINARY_CFLAGS)
+ 
+ imap_LDFLAGS = -export-dynamic \
++	$(SSL_LIBS) \
+ 	$(BINARY_LDFLAGS)
+ 
+ imap_LDADD = \
+ 	../lib-imap-urlauth/libimap-urlauth.la \
+ 	../lib-compression/libcompression.la \
++	$(SSL_LIBS) \
+ 	$(LIBDOVECOT_STORAGE) \
+ 	$(LIBDOVECOT)
+ imap_DEPENDENCIES = \
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/imap-urlauth/Makefile.am.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/imap-urlauth/Makefile.am
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/imap-urlauth/Makefile.am.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/imap-urlauth/Makefile.am	2025-11-30 09:57:55.179268682 +0100
+@@ -23,6 +23,7 @@ imap_urlauth_CPPFLAGS = \
+ imap_urlauth_LDFLAGS = -export-dynamic
+ 
+ imap_urlauth_LDADD = $(LIBDOVECOT) \
++	$(SSL_LIBS)
+ 	$(BINARY_LDFLAGS)
+ 
+ imap_urlauth_DEPENDENCIES = $(LIBDOVECOT_DEPS)
+@@ -53,7 +54,7 @@ imap_urlauth_worker_LDFLAGS = -export-dy
+ urlauth_libs = \
+ 	$(top_builddir)/src/lib-imap-urlauth/libimap-urlauth.la
+ 
+-imap_urlauth_worker_LDADD = $(urlauth_libs) $(LIBDOVECOT_STORAGE) $(LIBDOVECOT)
++imap_urlauth_worker_LDADD = $(urlauth_libs) $(SSL_LIBS) $(LIBDOVECOT_STORAGE) $(LIBDOVECOT)
+ imap_urlauth_worker_DEPENDENCIES = $(urlauth_libs) $(LIBDOVECOT_STORAGE_DEPS) $(LIBDOVECOT_DEPS)
+ 
+ imap_urlauth_worker_SOURCES = \
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-client.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-client.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-client.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-client.c	2025-11-30 09:57:55.179413002 +0100
+@@ -222,7 +222,7 @@ static string_t *auth_scram_get_client_f
+ 	unsigned char client_signature[hmethod->digest_size];
+ 	unsigned char client_proof[hmethod->digest_size];
+ 	unsigned char server_key[hmethod->digest_size];
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	const void *cbind_input;
+ 	size_t cbind_input_size;
+ 	string_t *auth_message, *str;
+@@ -281,9 +281,9 @@ static string_t *auth_scram_get_client_f
+ 		      client->iter, salted_password);
+ 
+ 	/* ClientKey       := HMAC(SaltedPassword, "Client Key") */
+-	hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
+-	hmac_update(&ctx, "Client Key", 10);
+-	hmac_final(&ctx, client_key);
++	openssl_hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
++	openssl_hmac_update(&ctx, "Client Key", 10);
++	openssl_hmac_final(&ctx, client_key);
+ 
+ 	/* StoredKey       := H(ClientKey) */
+ 	hash_method_get_digest(hmethod, client_key, sizeof(client_key),
+@@ -301,9 +301,9 @@ static string_t *auth_scram_get_client_f
+ 	str_append_str(auth_message, str);
+ 
+ 	/* ClientSignature := HMAC(StoredKey, AuthMessage) */
+-	hmac_init(&ctx, stored_key, sizeof(stored_key), hmethod);
+-	hmac_update(&ctx, str_data(auth_message), str_len(auth_message));
+-	hmac_final(&ctx, client_signature);
++	openssl_hmac_init(&ctx, stored_key, sizeof(stored_key), hmethod);
++	openssl_hmac_update(&ctx, str_data(auth_message), str_len(auth_message));
++	openssl_hmac_final(&ctx, client_signature);
+ 
+ 	/* ClientProof     := ClientKey XOR ClientSignature */
+ 	for (k = 0; k < hmethod->digest_size; k++)
+@@ -314,16 +314,16 @@ static string_t *auth_scram_get_client_f
+ 	safe_memset(client_signature, 0, sizeof(client_signature));
+ 
+ 	/* ServerKey       := HMAC(SaltedPassword, "Server Key") */
+-	hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
+-	hmac_update(&ctx, "Server Key", 10);
+-	hmac_final(&ctx, server_key);
++	openssl_hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
++	openssl_hmac_update(&ctx, "Server Key", 10);
++	openssl_hmac_final(&ctx, server_key);
+ 
+ 	/* ServerSignature := HMAC(ServerKey, AuthMessage) */
+ 	client->server_signature =
+ 		p_malloc(client->pool, hmethod->digest_size);
+-	hmac_init(&ctx, server_key, sizeof(server_key), hmethod);
+-	hmac_update(&ctx, str_data(auth_message), str_len(auth_message));
+-	hmac_final(&ctx, client->server_signature);
++	openssl_hmac_init(&ctx, server_key, sizeof(server_key), hmethod);
++	openssl_hmac_update(&ctx, str_data(auth_message), str_len(auth_message));
++	openssl_hmac_final(&ctx, client->server_signature);
+ 
+ 	safe_memset(salted_password, 0, sizeof(salted_password));
+ 
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram.c	2025-11-30 09:57:55.179729815 +0100
+@@ -31,7 +31,7 @@ void auth_scram_hi(const struct hash_met
+ 		   const unsigned char *salt, size_t salt_size, unsigned int i,
+ 		   unsigned char *result)
+ {
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	unsigned char U[hmethod->digest_size];
+ 	unsigned int j, k;
+ 
+@@ -51,18 +51,18 @@ void auth_scram_hi(const struct hash_met
+ 	*/
+ 
+ 	/* Calculate U1 */
+-	hmac_init(&ctx, str, str_size, hmethod);
+-	hmac_update(&ctx, salt, salt_size);
+-	hmac_update(&ctx, "\0\0\0\1", 4);
+-	hmac_final(&ctx, U);
++	openssl_hmac_init(&ctx, str, str_size, hmethod);
++	openssl_hmac_update(&ctx, salt, salt_size);
++	openssl_hmac_update(&ctx, "\0\0\0\1", 4);
++	openssl_hmac_final(&ctx, U);
+ 
+ 	memcpy(result, U, hmethod->digest_size);
+ 
+ 	/* Calculate U2 to Ui and Hi */
+ 	for (j = 2; j <= i; j++) {
+-		hmac_init(&ctx, str, str_size, hmethod);
+-		hmac_update(&ctx, U, sizeof(U));
+-		hmac_final(&ctx, U);
++		openssl_hmac_init(&ctx, str, str_size, hmethod);
++		openssl_hmac_update(&ctx, U, sizeof(U));
++		openssl_hmac_final(&ctx, U);
+ 		for (k = 0; k < hmethod->digest_size; k++)
+ 			result[k] ^= U[k];
+ 	}
+@@ -75,7 +75,7 @@ void auth_scram_generate_key_data(const
+ 				  unsigned char stored_key_r[],
+ 				  unsigned char server_key_r[])
+ {
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	unsigned char salt[16];
+ 	unsigned char salted_password[hmethod->digest_size];
+ 	unsigned char client_key[hmethod->digest_size];
+@@ -97,18 +97,18 @@ void auth_scram_generate_key_data(const
+ 		      salt, sizeof(salt), rounds, salted_password);
+ 
+ 	/* Calculate ClientKey */
+-	hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
+-	hmac_update(&ctx, "Client Key", 10);
+-	hmac_final(&ctx, client_key);
++	openssl_hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
++	openssl_hmac_update(&ctx, "Client Key", 10);
++	openssl_hmac_final(&ctx, client_key);
+ 
+ 	/* Calculate StoredKey */
+ 	hash_method_get_digest(hmethod, client_key, sizeof(client_key),
+ 			       stored_key_r);
+ 
+ 	/* Calculate ServerKey */
+-	hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
+-	hmac_update(&ctx, "Server Key", 10);
+-	hmac_final(&ctx, server_key_r);
++	openssl_hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
++	openssl_hmac_update(&ctx, "Server Key", 10);
++	openssl_hmac_final(&ctx, server_key_r);
+ 
+ 	safe_memset(salted_password, 0, sizeof(salted_password));
+ 	safe_memset(client_key, 0, sizeof(client_key));
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-server.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-server.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-server.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/auth-scram-server.c	2025-11-30 09:57:55.179862473 +0100
+@@ -288,7 +288,7 @@ auth_scram_server_verify_credentials(str
+ {
+ 	const struct hash_method *hmethod = server->set.hash_method;
+ 	struct auth_scram_key_data *kdata = &server->key_data;
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	const char *auth_message;
+ 	unsigned char client_key[hmethod->digest_size];
+ 	unsigned char client_signature[hmethod->digest_size];
+@@ -309,9 +309,9 @@ auth_scram_server_verify_credentials(str
+ 			server->server_first_message, ",",
+ 			server->client_final_message_without_proof, NULL);
+ 
+-	hmac_init(&ctx, kdata->stored_key, hmethod->digest_size, hmethod);
+-	hmac_update(&ctx, auth_message, strlen(auth_message));
+-	hmac_final(&ctx, client_signature);
++	openssl_hmac_init(&ctx, kdata->stored_key, hmethod->digest_size, hmethod);
++	openssl_hmac_update(&ctx, auth_message, strlen(auth_message));
++	openssl_hmac_final(&ctx, client_signature);
+ 
+ 	/* ClientProof     := ClientKey XOR ClientSignature */
+ 	const unsigned char *proof_data = server->proof->data;
+@@ -440,7 +440,7 @@ auth_scram_get_server_final(struct auth_
+ {
+ 	const struct hash_method *hmethod = server->set.hash_method;
+ 	struct auth_scram_key_data *kdata = &server->key_data;
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	const char *auth_message;
+ 	unsigned char server_signature[hmethod->digest_size];
+ 	string_t *str;
+@@ -456,9 +456,9 @@ auth_scram_get_server_final(struct auth_
+ 			server->server_first_message, ",",
+ 			server->client_final_message_without_proof, NULL);
+ 
+-	hmac_init(&ctx, kdata->server_key, hmethod->digest_size, hmethod);
+-	hmac_update(&ctx, auth_message, strlen(auth_message));
+-	hmac_final(&ctx, server_signature);
++	openssl_hmac_init(&ctx, kdata->server_key, hmethod->digest_size, hmethod);
++	openssl_hmac_update(&ctx, auth_message, strlen(auth_message));
++	openssl_hmac_final(&ctx, server_signature);
+ 
+ 	/* RFC 5802, Section 7:
+ 
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme.c	2025-11-30 09:57:55.180035106 +0100
+@@ -633,11 +633,11 @@ static void
+ cram_md5_generate(const char *plaintext, const struct password_generate_params *params ATTR_UNUSED,
+ 		  const unsigned char **raw_password_r, size_t *size_r)
+ {
+-	struct hmac_context ctx;
++	struct orig_hmac_context ctx;
+ 	unsigned char *context_digest;
+ 
+ 	context_digest = t_malloc_no0(CRAM_MD5_CONTEXTLEN);
+-	hmac_init(&ctx, (const unsigned char *)plaintext,
++	orig_hmac_init(&ctx, (const unsigned char *)plaintext,
+ 		  strlen(plaintext), &hash_method_md5);
+ 	hmac_md5_get_cram_context(&ctx, context_digest);
+ 
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme-scram.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme-scram.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme-scram.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-auth/password-scheme-scram.c	2025-11-30 09:57:55.180182392 +0100
+@@ -23,7 +23,7 @@ int scram_verify(const struct hash_metho
+ 		 const char *plaintext, const unsigned char *raw_password,
+ 		 size_t size, const char **error_r)
+ {
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	const char *salt_base64;
+ 	unsigned int iter_count;
+ 	const unsigned char *salt;
+@@ -49,9 +49,9 @@ int scram_verify(const struct hash_metho
+ 		      salt, salt_len, iter_count, salted_password);
+ 
+ 	/* Calculate ClientKey */
+-	hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
+-	hmac_update(&ctx, "Client Key", 10);
+-	hmac_final(&ctx, client_key);
++	openssl_hmac_init(&ctx, salted_password, sizeof(salted_password), hmethod);
++	openssl_hmac_update(&ctx, "Client Key", 10);
++	openssl_hmac_final(&ctx, client_key);
+ 
+ 	/* Calculate StoredKey */
+ 	hash_method_get_digest(hmethod, client_key, sizeof(client_key),
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.c	2025-11-30 09:57:55.180318937 +0100
+@@ -7,6 +7,10 @@
+  * This software is released under the MIT license.
+  */
+ 
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <fcntl.h>
++#include <unistd.h>
+ #include "lib.h"
+ #include "hmac.h"
+ #include "safe-memset.h"
+@@ -14,10 +18,103 @@
+ 
+ #include "hex-binary.h"
+ 
+-void hmac_init(struct hmac_context *_ctx, const unsigned char *key,
++#ifndef HAVE_HMAC_CTX_NEW
++#  define HMAC_Init_ex(ctx, key, key_len, md, impl) \
++	HMAC_Init_ex(&(ctx), key, key_len, md, impl)
++#  define HMAC_Update(ctx, data, len) HMAC_Update(&(ctx), data, len)
++#  define HMAC_Final(ctx, md, len) HMAC_Final(&(ctx), md, len)
++#  define HMAC_CTX_free(ctx) HMAC_cleanup(&(ctx))
++#else
++#  define HMAC_CTX_free(ctx) \
++	STMT_START { HMAC_CTX_free(ctx); (ctx) = NULL; } STMT_END
++#endif
++
++
++void openssl_hmac_init(struct openssl_hmac_context *_ctx, const unsigned char *key, //DONE
++		size_t key_len, const struct hash_method *meth)
++{
++#ifdef USE_OPENSSL3_METHODS
++	struct openssl_hmac_context_priv *ctx = &_ctx->u.priv;
++	
++	
++	const EVP_MD *md;
++	const char *ebuf = NULL;
++	const char **error_r = &ebuf;
++	OSSL_PARAM params[2];
++
++	md = EVP_get_digestbyname(meth->name);
++	if(md == NULL) {
++		if (error_r != NULL) {
++			*error_r = t_strdup_printf("Invalid digest %s",
++						   meth->name);
++		}
++		//return FALSE;
++	}
++	
++	ctx->mac = EVP_MAC_fetch(NULL, "HMAC", NULL);
++
++    ctx->ctx = EVP_MAC_CTX_new(ctx->mac);
++    if (ctx->ctx == NULL) {
++        EVP_MAC_free(ctx->mac);
++	}
++
++	params[0] = OSSL_PARAM_construct_utf8_string("digest", (char *)meth->name, 0);
++    params[1] = OSSL_PARAM_construct_end();
++
++	if (EVP_MAC_init(ctx->ctx, key, key_len,
++                     params) == 0) {
++		if (error_r != NULL) {
++			*error_r = t_strdup_printf("Invalid digest %s",
++						   meth->name);
++		}
++	}
++
++#else
++	struct openssl_hmac_context_priv *ctx = &_ctx->u.priv;
++
++	const EVP_MD *md;
++	const char *ebuf = NULL;
++	const char **error_r = &ebuf;
++
++	md = EVP_get_digestbyname(meth->name);
++	if(md == NULL) {
++		if (error_r != NULL) {
++			*error_r = t_strdup_printf("Invalid digest %s",
++						   meth->name);
++		}
++		//return FALSE;
++	}
++
++// 	int ec;
++
++	i_assert(md != NULL);
++#ifdef HAVE_HMAC_CTX_NEW
++	ctx->ctx = HMAC_CTX_new();
++/*	if (ctx->ctx == NULL)
++		dcrypt_openssl_error(error_r);*/
++#endif
++	/*ec = */HMAC_Init_ex(ctx->ctx, key, key_len, md, NULL);
++#endif
++}
++
++void orig_hmac_init(struct orig_hmac_context *_ctx, const unsigned char *key, //DONE
+ 		size_t key_len, const struct hash_method *meth)
+ {
+-	struct hmac_context_priv *ctx = &_ctx->u.priv;
++    static int no_fips = -1;
++    if (no_fips == -1) {
++        int fd = open("/proc/sys/crypto/fips_enabled", O_RDONLY);
++        if (fd != -1)
++        {
++            char buf[4];
++            if (read(fd, buf, 4) > 0)
++            {
++                no_fips = buf[0] == '0';   
++            }
++            close(fd);   
++        }
++    }
++    i_assert(no_fips);
++	struct orig_hmac_context_priv *ctx = &_ctx->u.priv;
+ 	unsigned int i;
+ 	unsigned char k_ipad[meth->block_size];
+ 	unsigned char k_opad[meth->block_size];
+@@ -54,9 +151,33 @@ void hmac_init(struct hmac_context *_ctx
+ 	safe_memset(k_opad, 0, meth->block_size);
+ }
+ 
+-void hmac_final(struct hmac_context *_ctx, unsigned char *digest)
++void openssl_hmac_final(struct openssl_hmac_context *_ctx, unsigned char *digest) //FIXME
+ {
+-	struct hmac_context_priv *ctx = &_ctx->u.priv;
++	int ec;
++	unsigned char buf[EVP_MAX_MD_SIZE];
++	size_t outl;
++//     const char *ebuf = NULL;
++//     const char **error_r = &ebuf;
++
++    struct openssl_hmac_context_priv *ctx = &_ctx->u.priv;
++#ifdef USE_OPENSSL3_METHODS
++	ec = EVP_MAC_final(ctx->ctx, buf, &outl, sizeof buf);
++	EVP_MAC_CTX_free(ctx->ctx);
++	EVP_MAC_free(ctx->mac);
++#else
++	ec = HMAC_Final(ctx->ctx, buf, &outl);
++	HMAC_CTX_free(ctx->ctx);
++#endif
++	if (ec == 1)
++		memcpy(digest, buf, outl);
++//	else
++//		dcrypt_openssl_error(error_r);
++
++}
++
++void orig_hmac_final(struct orig_hmac_context *_ctx, unsigned char *digest) //DONE
++{
++	struct orig_hmac_context_priv *ctx = &_ctx->u.priv;
+ 
+ 	ctx->hash->result(ctx->ctx, digest);
+ 
+@@ -64,53 +185,50 @@ void hmac_final(struct hmac_context *_ct
+ 	ctx->hash->result(ctx->ctxo, digest);
+ }
+ 
+-buffer_t *t_hmac_data(const struct hash_method *meth,
++buffer_t *openssl_t_hmac_data(const struct hash_method *meth, //FIXME
+ 		      const unsigned char *key, size_t key_len,
+ 		      const void *data, size_t data_len)
+ {
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	i_assert(meth != NULL);
+ 	i_assert(key != NULL && key_len > 0);
+ 	i_assert(data != NULL || data_len == 0);
+ 
+ 	buffer_t *res = t_buffer_create(meth->digest_size);
+-	hmac_init(&ctx, key, key_len, meth);
++	openssl_hmac_init(&ctx, key, key_len, meth);
+ 	if (data_len > 0)
+-		hmac_update(&ctx, data, data_len);
++		openssl_hmac_update(&ctx, data, data_len);
+ 	unsigned char *buf = buffer_get_space_unsafe(res, 0, meth->digest_size);
+-	hmac_final(&ctx, buf);
++	openssl_hmac_final(&ctx, buf);
+ 	return res;
+ }
+ 
+-buffer_t *t_hmac_buffer(const struct hash_method *meth,
++buffer_t *openssl_t_hmac_buffer(const struct hash_method *meth, //DONE
+ 			const unsigned char *key, size_t key_len,
+ 			const buffer_t *data)
+ {
+-	return t_hmac_data(meth, key, key_len, data->data, data->used);
++	return openssl_t_hmac_data(meth, key, key_len, data->data, data->used);
+ }
+ 
+-buffer_t *t_hmac_str(const struct hash_method *meth,
++buffer_t *openssl_t_hmac_str(const struct hash_method *meth, //DONE
+ 		     const unsigned char *key, size_t key_len,
+ 		     const char *data)
+ {
+-	return t_hmac_data(meth, key, key_len, data, strlen(data));
++	return openssl_t_hmac_data(meth, key, key_len, data, strlen(data));
+ }
+ 
+-void hmac_hkdf(const struct hash_method *method,
++void openssl_hmac_hkdf(const struct hash_method *method, //FIXME
+ 	       const unsigned char *salt, size_t salt_len,
+ 	       const unsigned char *ikm, size_t ikm_len,
+ 	       const unsigned char *info, size_t info_len,
+ 	       buffer_t *okm_r, size_t okm_len)
+ {
++	const EVP_MD *md;
++	EVP_PKEY_CTX *pctx;
++	int r = 1;
++
+ 	i_assert(method != NULL);
+ 	i_assert(okm_len < 255*method->digest_size);
+-	struct hmac_context key_mac;
+-	struct hmac_context info_mac;
+-	size_t remain = okm_len;
+-	unsigned char prk[method->digest_size];
+-	unsigned char okm[method->digest_size];
+-	/* N = ceil(L/HashLen) */
+-	unsigned int rounds = (okm_len + method->digest_size - 1)/method->digest_size;
+ 
+ 	/* salt and info can be NULL */
+ 	i_assert(salt != NULL || salt_len == 0);
+@@ -126,28 +244,29 @@ void hmac_hkdf(const struct hash_method
+ 	if (info == NULL)
+ 		info = &uchar_nul;
+ 
+-	/* extract */
+-	hmac_init(&key_mac, salt, salt_len, method);
+-	hmac_update(&key_mac, ikm, ikm_len);
+-	hmac_final(&key_mac, prk);
+-
+-	/* expand */
+-	for (unsigned int i = 0; remain > 0 && i < rounds; i++) {
+-		unsigned char round = (i+1);
+-		size_t amt = remain;
+-		if (amt > method->digest_size)
+-			amt = method->digest_size;
+-		hmac_init(&info_mac, prk, method->digest_size, method);
+-		if (i > 0)
+-			hmac_update(&info_mac, okm, method->digest_size);
+-		hmac_update(&info_mac, info, info_len);
+-		hmac_update(&info_mac, &round, 1);
+-		memset(okm, 0, method->digest_size);
+-		hmac_final(&info_mac, okm);
+-		buffer_append(okm_r, okm, amt);
+-		remain -= amt;
++	md = EVP_get_digestbyname(method->name);
++	pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_HKDF, NULL);
++	unsigned char *okm_buf = buffer_get_space_unsafe(okm_r, 0, okm_len);
++
++	if ((r=EVP_PKEY_derive_init(pctx)) <= 0)
++		goto out;
++	if ((r=EVP_PKEY_CTX_set_hkdf_md(pctx, md)) <= 0)
++		goto out;
++	if ((r=EVP_PKEY_CTX_set1_hkdf_salt(pctx, salt, salt_len)) <= 0)
++		goto out;
++	if ((r=EVP_PKEY_CTX_set1_hkdf_key(pctx, ikm, ikm_len)) <= 0)
++		goto out;
++	if ((r=EVP_PKEY_CTX_add1_hkdf_info(pctx, info, info_len)) <= 0)
++		goto out;
++	if ((r=EVP_PKEY_derive(pctx, okm_buf, &okm_len)) <= 0)
++		goto out;
++
++     out:
++	EVP_PKEY_CTX_free(pctx);
++	if (r <= 0) {
++		unsigned long ec = ERR_get_error();
++		unsigned char *error = t_strdup_printf("%s", ERR_error_string(ec, NULL));
++		i_error("%s", error);
+ 	}
+ 
+-	safe_memset(prk, 0, sizeof(prk));
+-	safe_memset(okm, 0, sizeof(okm));
+ }
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.c	2025-11-30 09:57:55.180461985 +0100
+@@ -9,10 +9,10 @@
+ #include "md5.h"
+ #include "hmac-cram-md5.h"
+ 
+-void hmac_md5_get_cram_context(struct hmac_context *_hmac_ctx,
++void hmac_md5_get_cram_context(struct orig_hmac_context *_hmac_ctx,
+ 			unsigned char context_digest[CRAM_MD5_CONTEXTLEN])
+ {
+-	struct hmac_context_priv *hmac_ctx = &_hmac_ctx->u.priv;
++	struct orig_hmac_context_priv *hmac_ctx = &_hmac_ctx->u.priv;
+ 	unsigned char *cdp;
+ 
+ 	struct md5_context *ctx = (void*)hmac_ctx->ctx;
+@@ -35,10 +35,10 @@ void hmac_md5_get_cram_context(struct hm
+ 	CDPUT(cdp, ctx->d);
+ }
+ 
+-void hmac_md5_set_cram_context(struct hmac_context *_hmac_ctx,
++void hmac_md5_set_cram_context(struct orig_hmac_context *_hmac_ctx,
+ 			const unsigned char context_digest[CRAM_MD5_CONTEXTLEN])
+ {
+-	struct hmac_context_priv *hmac_ctx = &_hmac_ctx->u.priv;
++	struct orig_hmac_context_priv *hmac_ctx = &_hmac_ctx->u.priv;
+ 	const unsigned char *cdp;
+ 
+ 	struct md5_context *ctx = (void*)hmac_ctx->ctx;
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.h.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.h
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.h.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac-cram-md5.h	2025-11-30 09:57:55.180563796 +0100
+@@ -5,9 +5,9 @@
+ 
+ #define CRAM_MD5_CONTEXTLEN 32
+ 
+-void hmac_md5_get_cram_context(struct hmac_context *ctx,
++void hmac_md5_get_cram_context(struct orig_hmac_context *ctx,
+ 		unsigned char context_digest[CRAM_MD5_CONTEXTLEN]);
+-void hmac_md5_set_cram_context(struct hmac_context *ctx,
++void hmac_md5_set_cram_context(struct orig_hmac_context *ctx,
+ 		const unsigned char context_digest[CRAM_MD5_CONTEXTLEN]);
+ 
+ 
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.h.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.h
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.h.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib/hmac.h	2025-11-30 09:57:55.180723505 +0100
+@@ -4,60 +4,108 @@
+ #include "hash-method.h"
+ #include "sha1.h"
+ #include "sha2.h"
++#include <openssl/objects.h>
++#include <openssl/hmac.h>
++#include <openssl/kdf.h>
++#include <openssl/err.h>
+ 
+ #define HMAC_MAX_CONTEXT_SIZE HASH_METHOD_MAX_CONTEXT_SIZE
+ 
+-struct hmac_context_priv {
++
++#define USE_OPENSSL3_METHODS 1
++
++struct openssl_hmac_context_priv {
++#ifdef USE_OPENSSL3_METHODS
++	EVP_MAC *mac;
++    EVP_MAC_CTX *ctx;
++#else
++#ifdef HAVE_HMAC_CTX_NEW
++	HMAC_CTX *ctx;
++#else
++	HMAC_CTX ctx;
++#endif
++#endif
++	const struct hash_method *hash;
++};
++struct orig_hmac_context_priv {
+ 	char ctx[HMAC_MAX_CONTEXT_SIZE];
+ 	char ctxo[HMAC_MAX_CONTEXT_SIZE];
+ 	const struct hash_method *hash;
+ };
+ 
+-struct hmac_context {
++struct openssl_hmac_context {
+ 	union {
+-		struct hmac_context_priv priv;
++		struct openssl_hmac_context_priv priv;
+ 		uint64_t padding_requirement;
+ 	} u;
+ };
+ 
+-void hmac_init(struct hmac_context *ctx, const unsigned char *key,
++struct orig_hmac_context {
++	union {
++		struct orig_hmac_context_priv priv;
++		uint64_t padding_requirement;
++	} u;
++};
++
++void openssl_hmac_init(struct openssl_hmac_context *ctx, const unsigned char *key,
++		size_t key_len, const struct hash_method *meth);
++void openssl_hmac_final(struct openssl_hmac_context *ctx, unsigned char *digest);
++
++static inline void
++openssl_hmac_update(struct openssl_hmac_context *_ctx, const void *data, size_t size)
++{
++	struct openssl_hmac_context_priv *ctx = &_ctx->u.priv;
++#ifdef USE_OPENSSL3_METHODS
++	EVP_MAC_update(ctx->ctx, data, size);
++#else
++	HMAC_Update(ctx->ctx, data, size);
++#endif
++/*	if (ec != 1)
++    {
++        const char *ebuf = NULL;
++        const char **error_r = &ebuf;
++		dcrypt_openssl_error(error_r);
++    }*/
++}
++
++void orig_hmac_init(struct orig_hmac_context *ctx, const unsigned char *key,
+ 		size_t key_len, const struct hash_method *meth);
+-void hmac_final(struct hmac_context *ctx, unsigned char *digest);
++void orig_hmac_final(struct orig_hmac_context *ctx, unsigned char *digest);
+ 
+ 
+ static inline void
+-hmac_update(struct hmac_context *_ctx, const void *data, size_t size)
++orig_hmac_update(struct orig_hmac_context *_ctx, const void *data, size_t size)
+ {
+-	struct hmac_context_priv *ctx = &_ctx->u.priv;
++	struct orig_hmac_context_priv *ctx = &_ctx->u.priv;
+ 
+ 	ctx->hash->loop(ctx->ctx, data, size);
+ }
+ 
+-buffer_t *t_hmac_data(const struct hash_method *meth,
++buffer_t *openssl_t_hmac_data(const struct hash_method *meth,
+ 		      const unsigned char *key, size_t key_len,
+ 		      const void *data, size_t data_len);
+-buffer_t *t_hmac_buffer(const struct hash_method *meth,
++buffer_t *openssl_t_hmac_buffer(const struct hash_method *meth,
+ 			const unsigned char *key, size_t key_len,
+ 			const buffer_t *data);
+-buffer_t *t_hmac_str(const struct hash_method *meth,
++buffer_t *openssl_t_hmac_str(const struct hash_method *meth,
+ 		     const unsigned char *key, size_t key_len,
+ 		     const char *data);
+ 
+-void hmac_hkdf(const struct hash_method *method,
++void openssl_hmac_hkdf(const struct hash_method *method,
+ 	       const unsigned char *salt, size_t salt_len,
+ 	       const unsigned char *ikm, size_t ikm_len,
+ 	       const unsigned char *info, size_t info_len,
+ 	       buffer_t *okm_r, size_t okm_len);
+ 
+ static inline buffer_t *
+-t_hmac_hkdf(const struct hash_method *method,
++openssl_t_hmac_hkdf(const struct hash_method *method,
+ 	    const unsigned char *salt, size_t salt_len,
+ 	    const unsigned char *ikm, size_t ikm_len,
+ 	    const unsigned char *info, size_t info_len,
+ 	    size_t okm_len)
+ {
+ 	buffer_t *okm_buffer = t_buffer_create(okm_len);
+-	hmac_hkdf(method, salt, salt_len, ikm, ikm_len, info, info_len,
++	openssl_hmac_hkdf(method, salt, salt_len, ikm, ikm_len, info, info_len,
+ 		  okm_buffer, okm_len);
+ 	return okm_buffer;
+ }
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-imap-urlauth/imap-urlauth.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-imap-urlauth/imap-urlauth.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-imap-urlauth/imap-urlauth.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-imap-urlauth/imap-urlauth.c	2025-11-30 09:57:55.180863807 +0100
+@@ -87,15 +87,15 @@ imap_urlauth_internal_generate(
+ 	const unsigned char mailbox_key[IMAP_URLAUTH_KEY_LEN],
+ 	size_t *token_len_r)
+ {
+-	struct hmac_context hmac;
++	struct openssl_hmac_context hmac;
+ 	unsigned char *token;
+ 
+ 	token = t_new(unsigned char, SHA1_RESULTLEN + 1);
+ 	token[0] = IMAP_URLAUTH_MECH_INTERNAL_VERSION;
+ 
+-	hmac_init(&hmac, mailbox_key, IMAP_URLAUTH_KEY_LEN, &hash_method_sha1);
+-	hmac_update(&hmac, rumpurl, strlen(rumpurl));
+-	hmac_final(&hmac, token+1);
++	openssl_hmac_init(&hmac, mailbox_key, IMAP_URLAUTH_KEY_LEN, &hash_method_sha1);
++	openssl_hmac_update(&hmac, rumpurl, strlen(rumpurl));
++	openssl_hmac_final(&hmac, token+1);
+ 
+ 	*token_len_r = SHA1_RESULTLEN + 1;
+ 	return token;
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib/Makefile.am.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib/Makefile.am
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib/Makefile.am.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib/Makefile.am	2025-11-30 09:57:55.180990124 +0100
+@@ -414,6 +414,9 @@ headers = \
+ 	wildcard-match.h \
+ 	write-full.h
+ 
++liblib_la_LIBADD = $(SSL_LIBS)
++liblib_la_CFLAGS = $(SSL_CFLAGS)
++
+ test_programs = test-lib
+ noinst_PROGRAMS = $(test_programs)
+ 
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/oauth2-jwt.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/oauth2-jwt.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/oauth2-jwt.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/oauth2-jwt.c	2025-11-30 09:57:55.181135306 +0100
+@@ -210,14 +210,14 @@ oauth2_validate_hmac(const struct oauth2
+ 	if (oauth2_lookup_hmac_key(set, azp, alg, key_id, &key, error_r) < 0)
+ 		return -1;
+ 
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	unsigned char digest[method->digest_size];
+ 
+-	hmac_init(&ctx, key->data, key->used, method);
+-	hmac_update(&ctx, blobs[0], strlen(blobs[0]));
+-	hmac_update(&ctx, ".", 1);
+-	hmac_update(&ctx, blobs[1], strlen(blobs[1]));
+-	hmac_final(&ctx, digest);
++	openssl_hmac_init(&ctx, key->data, key->used, method);
++	openssl_hmac_update(&ctx, blobs[0], strlen(blobs[0]));
++	openssl_hmac_update(&ctx, ".", 1);
++	openssl_hmac_update(&ctx, blobs[1], strlen(blobs[1]));
++	openssl_hmac_final(&ctx, digest);
+ 
+ 	buffer_t *their_digest =
+ 		t_base64url_decode_str(BASE64_DECODE_FLAG_NO_PADDING, blobs[2]);
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/test-oauth2-jwt.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/test-oauth2-jwt.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/test-oauth2-jwt.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-oauth2/test-oauth2-jwt.c	2025-11-30 09:57:55.181290025 +0100
+@@ -250,7 +250,7 @@ static void save_key_azp_to(const char *
+ static void sign_jwt_token_hs256(buffer_t *tokenbuf, buffer_t *key)
+ {
+ 	i_assert(key != NULL);
+-	buffer_t *sig = t_hmac_buffer(&hash_method_sha256, key->data, key->used,
++	buffer_t *sig = openssl_t_hmac_buffer(&hash_method_sha256, key->data, key->used,
+ 				      tokenbuf);
+ 	buffer_append(tokenbuf, ".", 1);
+ 	base64url_encode(BASE64_ENCODE_FLAG_NO_PADDING, SIZE_MAX,
+@@ -260,7 +260,7 @@ static void sign_jwt_token_hs256(buffer_
+ static void sign_jwt_token_hs384(buffer_t *tokenbuf, buffer_t *key)
+ {
+ 	i_assert(key != NULL);
+-	buffer_t *sig = t_hmac_buffer(&hash_method_sha384, key->data, key->used,
++	buffer_t *sig = openssl_t_hmac_buffer(&hash_method_sha384, key->data, key->used,
+ 				      tokenbuf);
+ 	buffer_append(tokenbuf, ".", 1);
+ 	base64url_encode(BASE64_ENCODE_FLAG_NO_PADDING, SIZE_MAX,
+@@ -270,7 +270,7 @@ static void sign_jwt_token_hs384(buffer_
+ static void sign_jwt_token_hs512(buffer_t *tokenbuf, buffer_t *key)
+ {
+ 	i_assert(key != NULL);
+-	buffer_t *sig = t_hmac_buffer(&hash_method_sha512, key->data, key->used,
++	buffer_t *sig = openssl_t_hmac_buffer(&hash_method_sha512, key->data, key->used,
+ 				      tokenbuf);
+ 	buffer_append(tokenbuf, ".", 1);
+ 	base64url_encode(BASE64_ENCODE_FLAG_NO_PADDING, SIZE_MAX,
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib/pkcs5.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib/pkcs5.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib/pkcs5.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib/pkcs5.c	2025-11-30 09:57:55.181492013 +0100
+@@ -52,7 +52,7 @@ int pkcs5_pbkdf2(const struct hash_metho
+ 	size_t l = (length + hash->digest_size - 1)/hash->digest_size; /* same as ceil(length/hash->digest_size) */
+ 	unsigned char dk[l * hash->digest_size];
+ 	unsigned char *block;
+-	struct hmac_context hctx;
++	struct openssl_hmac_context hctx;
+ 	unsigned int c,i,t;
+ 	unsigned char U_c[hash->digest_size];
+ 
+@@ -60,17 +60,17 @@ int pkcs5_pbkdf2(const struct hash_metho
+ 		block = &(dk[t*hash->digest_size]);
+ 		/* U_1 = PRF(Password, Salt|| INT_BE32(Block_Number)) */
+ 		c = htonl(t+1);
+-		hmac_init(&hctx, password, password_len, hash);
+-		hmac_update(&hctx, salt, salt_len);
+-		hmac_update(&hctx, &c, sizeof(c));
+-		hmac_final(&hctx, U_c);
++		openssl_hmac_init(&hctx, password, password_len, hash);
++		openssl_hmac_update(&hctx, salt, salt_len);
++		openssl_hmac_update(&hctx, &c, sizeof(c));
++		openssl_hmac_final(&hctx, U_c);
+ 		/* block = U_1 ^ .. ^ U_iter */
+ 		memcpy(block, U_c, hash->digest_size);
+ 		/* U_c = PRF(Password, U_c-1) */
+ 		for(c = 1; c < iter; c++) {
+-			hmac_init(&hctx, password, password_len, hash);
+-			hmac_update(&hctx, U_c, hash->digest_size);
+-			hmac_final(&hctx, U_c);
++			openssl_hmac_init(&hctx, password, password_len, hash);
++			openssl_hmac_update(&hctx, U_c, hash->digest_size);
++			openssl_hmac_final(&hctx, U_c);
+ 			for(i = 0; i < hash->digest_size; i++)
+ 				block[i] ^= U_c[i];
+ 		}
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/sasl-server-mech-cram-md5.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/sasl-server-mech-cram-md5.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/sasl-server-mech-cram-md5.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/sasl-server-mech-cram-md5.c	2025-11-30 10:00:28.967795725 +0100
+@@ -53,7 +53,7 @@ verify_credentials(struct sasl_server_me
+ 		container_of(auth_request, struct cram_auth_request,
+ 			     auth_request);
+ 	unsigned char digest[MD5_RESULTLEN];
+-        struct hmac_context ctx;
++        struct orig_hmac_context ctx;
+ 	const char *response_hex;
+ 
+ 	if (size != CRAM_MD5_CONTEXTLEN) {
+@@ -62,10 +62,10 @@ verify_credentials(struct sasl_server_me
+ 		return;
+ 	}
+ 
+-	hmac_init(&ctx, NULL, 0, &hash_method_md5);
++	orig_hmac_init(&ctx, NULL, 0, &hash_method_md5);
+ 	hmac_md5_set_cram_context(&ctx, credentials);
+-	hmac_update(&ctx, request->challenge, strlen(request->challenge));
+-	hmac_final(&ctx, digest);
++	orig_hmac_update(&ctx, request->challenge, strlen(request->challenge));
++	orig_hmac_final(&ctx, digest);
+ 
+ 	response_hex = binary_to_hex(digest, sizeof(digest));
+ 
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib/test-hmac.c.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib/test-hmac.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib/test-hmac.c.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib/test-hmac.c	2025-11-30 09:57:55.181656401 +0100
+@@ -206,11 +206,11 @@ static void test_hmac_rfc(void)
+ 	test_begin("hmac sha256 rfc4231 vectors");
+ 	for(size_t i = 0; i < N_ELEMENTS(test_vectors); i++) {
+ 		const struct test_vector *vec = &(test_vectors[i]);
+-		struct hmac_context ctx;
+-		hmac_init(&ctx, vec->key, vec->key_len, hash_method_lookup(vec->prf));
+-		hmac_update(&ctx, vec->data, vec->data_len);
++		struct openssl_hmac_context ctx;
++		openssl_hmac_init(&ctx, vec->key, vec->key_len, hash_method_lookup(vec->prf));
++		openssl_hmac_update(&ctx, vec->data, vec->data_len);
+ 		unsigned char res[SHA256_RESULTLEN];
+-		hmac_final(&ctx, res);
++		openssl_hmac_final(&ctx, res);
+ 		test_assert_idx(memcmp(res, vec->res, vec->res_len) == 0, i);
+ 	}
+ 	test_end();
+@@ -221,11 +221,11 @@ static void test_hmac384_rfc(void)
+ 	test_begin("hmac sha384 rfc4231 vectors");
+ 	for (size_t i = 0; i < N_ELEMENTS(test_vectors_hmac384); i++) {
+ 		const struct test_vector *vec = &(test_vectors_hmac384[i]);
+-		struct hmac_context ctx;
+-		hmac_init(&ctx, vec->key, vec->key_len, hash_method_lookup(vec->prf));
+-		hmac_update(&ctx, vec->data, vec->data_len);
++		struct openssl_hmac_context ctx;
++		openssl_hmac_init(&ctx, vec->key, vec->key_len, hash_method_lookup(vec->prf));
++		openssl_hmac_update(&ctx, vec->data, vec->data_len);
+ 		unsigned char res[SHA384_RESULTLEN];
+-		hmac_final(&ctx, res);
++		openssl_hmac_final(&ctx, res);
+ 		test_assert_idx(memcmp(res, vec->res, vec->res_len) == 0, i);
+ 	}
+ 	test_end();
+@@ -236,11 +236,11 @@ static void test_hmac512_rfc(void)
+ 	test_begin("hmac sha512 rfc4231 vectors");
+ 	for (size_t i = 0; i < N_ELEMENTS(test_vectors_hmac512); i++) {
+ 		const struct test_vector *vec = &(test_vectors_hmac512[i]);
+-		struct hmac_context ctx;
+-		hmac_init(&ctx, vec->key, vec->key_len, hash_method_lookup(vec->prf));
+-		hmac_update(&ctx, vec->data, vec->data_len);
++		struct openssl_hmac_context ctx;
++		openssl_hmac_init(&ctx, vec->key, vec->key_len, hash_method_lookup(vec->prf));
++		openssl_hmac_update(&ctx, vec->data, vec->data_len);
+ 		unsigned char res[SHA512_RESULTLEN];
+-		hmac_final(&ctx, res);
++		openssl_hmac_final(&ctx, res);
+ 		test_assert_idx(memcmp(res, vec->res, vec->res_len) == 0, i);
+ 	}
+ 	test_end();
+@@ -253,7 +253,7 @@ static void test_hmac_buffer(void)
+ 
+ 	buffer_t *tmp;
+ 
+-	tmp = t_hmac_data(hash_method_lookup(vec->prf), vec->key, vec->key_len,
++	tmp = openssl_t_hmac_data(hash_method_lookup(vec->prf), vec->key, vec->key_len,
+ 			  vec->data, vec->data_len);
+ 
+ 	test_assert(tmp->used == vec->res_len &&
+@@ -270,7 +270,7 @@ static void test_hkdf_rfc(void)
+ 		buffer_set_used_size(res, 0);
+ 		const struct test_vector_5869 *vec = &(test_vectors_5869[i]);
+ 		const struct hash_method *m = hash_method_lookup(vec->prf);
+-		hmac_hkdf(m, vec->salt, vec->salt_len, vec->ikm, vec->ikm_len,
++		openssl_hmac_hkdf(m, vec->salt, vec->salt_len, vec->ikm, vec->ikm_len,
+ 			  vec->info, vec->info_len, res, vec->okm_len);
+ 		test_assert_idx(memcmp(res->data, vec->okm, vec->okm_len) == 0, i);
+ 	}
+@@ -283,7 +283,7 @@ static void test_hkdf_buffer(void)
+ 	test_begin("hkdf temporary buffer");
+ 	const struct test_vector_5869 *vec = &(test_vectors_5869[0]);
+ 	const struct hash_method *m = hash_method_lookup(vec->prf);
+-	buffer_t *tmp = t_hmac_hkdf(m, vec->salt, vec->salt_len, vec->ikm,
++	buffer_t *tmp = openssl_t_hmac_hkdf(m, vec->salt, vec->salt_len, vec->ikm,
+ 				    vec->ikm_len, vec->info, vec->info_len,
+ 				    vec->okm_len);
+ 	test_assert(tmp->used == vec->okm_len &&
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-var-expand-crypt/Makefile.am.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-var-expand-crypt/Makefile.am
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-var-expand-crypt/Makefile.am.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-var-expand-crypt/Makefile.am	2025-11-30 09:58:11.669117030 +0100
+@@ -34,13 +34,13 @@ test_libs = \
+ 	$(DLLIB)
+ 
+ test_var_expand_crypt_SOURCES = test-var-expand-crypt.c
+-test_var_expand_crypt_LDADD = $(test_libs)
++test_var_expand_crypt_LDADD = $(test_libs) $(SSL_LIBS)
+ test_var_expand_crypt_DEPENDENCIES = $(module_LTLIBRARIES)
+ if HAVE_WHOLE_ARCHIVE
+ test_var_expand_crypt_LDFLAGS = -export-dynamic -Wl,$(LD_WHOLE_ARCHIVE),../lib/.libs/liblib.a,../lib-json/.libs/libjson.a,../lib-ssl-iostream/.libs/libssl_iostream.a,$(LD_NO_WHOLE_ARCHIVE)
+ endif
+ 
+-test_var_expand_crypt_CFLAGS = $(AM_CFLAGS) \
++test_var_expand_crypt_CFLAGS = $(AM_CFLAGS) $(SSL_CFLAGS) \
+ 	-DDCRYPT_BUILD_DIR=\"$(top_builddir)/src/lib-dcrypt\"
+ 
+ check-local:
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/submission/Makefile.am.opensslhmac3 dovecot-2.4.2-build/dovecot-2.4.2/src/submission/Makefile.am
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/submission/Makefile.am.opensslhmac3	2025-10-29 07:58:41.000000000 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/submission/Makefile.am	2025-11-30 09:57:55.182137562 +0100
+@@ -29,6 +29,7 @@ submission_LDADD = \
+ 	$(urlauth_libs) \
+ 	$(LIBDOVECOT_STORAGE) \
+ 	$(LIBDOVECOT) \
++	$(SSL_LIBS) \
+ 	$(MODULE_LIBS)
+ submission_DEPENDENCIES = \
+ 	$(urlauth_libs) \
+diff -up dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/dsasl-client-mech-cram-md5.c.fixbuild2 dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/dsasl-client-mech-cram-md5.c
+--- dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/dsasl-client-mech-cram-md5.c.fixbuild2	2025-11-30 13:11:06.583413762 +0100
++++ dovecot-2.4.2-build/dovecot-2.4.2/src/lib-sasl/dsasl-client-mech-cram-md5.c	2025-11-30 13:22:04.883307427 +0100
+@@ -81,13 +81,13 @@ mech_cram_md5_output(struct dsasl_client
+ 		return DSASL_CLIENT_RESULT_OK;
+ 	}
+ 
+-	struct hmac_context ctx;
++	struct openssl_hmac_context ctx;
+ 	unsigned char digest[MD5_RESULTLEN];
+ 
+-	hmac_init(&ctx, (const unsigned char *)client->password,
++	openssl_hmac_init(&ctx, (const unsigned char *)client->password,
+ 		  strlen(client->password), &hash_method_md5);
+-	hmac_update(&ctx, cclient->challenge, strlen(cclient->challenge));
+-	hmac_final(&ctx, digest);
++	openssl_hmac_update(&ctx, cclient->challenge, strlen(cclient->challenge));
++	openssl_hmac_final(&ctx, digest);
+ 
+ 	str = str_new(client->pool, 256);
+ 	str_append(str, client->set.authid);
