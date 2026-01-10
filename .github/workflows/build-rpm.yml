@@ -78,19 +78,12 @@ jobs:
         run: |
           rpmbuild -ba /root/rpmbuild/SPECS/${{ inputs.package }}.spec
 
-      - name: List built packages
-        run: |
-          echo "=== Built RPMs ==="
-          ls -lh /root/rpmbuild/RPMS/*/
-          echo "=== Built SRPMs ==="
-          ls -lh /root/rpmbuild/SRPMS/
-
-      # - name: Upload RPM artifacts
-      #   uses: actions/upload-artifact@v4.4.3
-      #   with:
-      #     name: ${{ inputs.package }}-${{ inputs.version }}-rhel${{ matrix.rhel_version }}-rpm
-      #     path: |
-      #       /root/rpmbuild/RPMS/*/*.rpm
-      #       /root/rpmbuild/SRPMS/*.rpm
-      #     if-no-files-found: error
-      #     retention-days: 30
+      - name: Upload RPM artifacts
+        uses: actions/upload-artifact@v4.4.3
+        with:
+          name: ${{ inputs.package }}-${{ inputs.version }}-rhel${{ matrix.rhel_version }}-rpm
+          path: |
+            /root/rpmbuild/RPMS/*/*.rpm
+            /root/rpmbuild/SRPMS/*.rpm
+          if-no-files-found: error
+          retention-days: 30
