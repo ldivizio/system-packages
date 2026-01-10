@@ -29,7 +29,8 @@ BuildRequires:  mariadb-connector-c-devel
 BuildRequires:  libpq-devel
 BuildRequires:  sqlite-devel
 BuildRequires:  openldap-devel
-BuildRequires:  libtool, autoconf, automake, pkgconfig, libpcap-devel, gettext-devel
+BuildRequires:  libtool, autoconf, automake, pkgconfig, gettext-devel
+BuildRequires:  libcap-devel
 BuildRequires:  libzstd-devel
 BuildRequires:  lua-devel
 BuildRequires:  libstemmer-devel
