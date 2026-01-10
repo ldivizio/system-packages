@@ -90,8 +90,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: "${{ inputs.package }}-${{ inputs.build }}-rhel${{ matrix.rhel_version }}"
-          #path: /workspace/artifacts/${{ matrix.rhel_version }}/*.rpm
-          path: /root/rpmbuild/RPMS/*/*.rpm
+          path: /root/rpmbuild/RPMS/**/*.rpm
           if-no-files-found: error
 
   release:
@@ -117,8 +116,7 @@ jobs:
           tag_name: ${{ inputs.package }}-${{ inputs.build }}
           name: ${{ inputs.package }} ${{ inputs.build }}
           prerelease: false
-          files: |
-            dist/*/*.rpm
-          fail_on_missing_files: true
+          files: dist/**/*.rpm
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
