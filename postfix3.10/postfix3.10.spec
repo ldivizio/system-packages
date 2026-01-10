@@ -17,7 +17,7 @@
 %bcond_without sasl
 %bcond_without tls
 %bcond_without smtputf8
-%bcond_without tlsrpt
+%bcond_with tlsrpt
 %bcond_without tools
 
 # hardened build if not overrided
