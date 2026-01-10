@@ -509,3 +509,5 @@ popd
 %attr(0755, root, root) %{postfix_command_dir}/pflogsumm
 %attr(0755, root, root) %{postfix_command_dir}/pffrombyto
 %attr(0755, root, root) %{postfix_command_dir}/pftobyfrom
+
+%changelog
