@@ -41,8 +41,11 @@ jobs:
 
       - name: Install build dependencies
         run: |
-          dnf install -y rpm-build rpmdevtools dnf-plugins-core
-          dnf install -y gcc-toolset-15-gcc gcc-toolset-15-gcc-plugin-annobin gcc-toolset-15-gcc-c++ make tar
+          if [ "${{ matrix.rhel_version }}" == "9" ]; then
+            dnf config-manager --set-enabled crb
+          fi
+          dnf install -y epel-release rpm-build rpmdevtools dnf-plugins-core
+          dnf install -y gcc-toolset-15-gcc gcc-toolset-15-gcc-plugin-annobin gcc-toolset-15-gcc-c++ tar
 
       - name: Setup RPM build environment
         run: |
