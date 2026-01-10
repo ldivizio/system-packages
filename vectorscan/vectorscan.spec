@@ -12,7 +12,8 @@ License: LicenseRef-Callaway-BSD
 URL:     https://www.vectorcamp.gr/project/vectorscan
 Source0: https://github.com/VectorCamp/%{name}/archive/refs/tags/vectorscan/%{version}.tar.gz
 
-BuildRequires:  gcc-c++
+BuildRequires:  gcc-toolset-15-gcc-c++
+BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
 BuildRequires:  boost-devel
 BuildRequires:  cmake
 BuildRequires:  pcre2-devel

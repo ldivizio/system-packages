@@ -78,6 +78,7 @@ jobs:
 
       - name: Build RPM
         run: |
+          source /opt/rh/gcc-toolset-15/enable
           rpmbuild -bb "/root/rpmbuild/SPECS/${{ inputs.package }}.spec"
 
       # - name: Collect RPM outputs

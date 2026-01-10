@@ -15,9 +15,9 @@ Source2:  rspamd.tmpfiles
 %define _build_id_links none
 
 BuildRequires: cmake
-BuildRequires: gcc-toolset-14-gcc
-BuildRequires: gcc-toolset-14-gcc-c++
-BuildRequires: gcc-toolset-14-gcc-plugin-annobin
+BuildRequires: gcc-toolset-15-gcc
+BuildRequires: gcc-toolset-15-gcc-c++
+BuildRequires: gcc-toolset-15-gcc-plugin-annobin
 BuildRequires: file-devel
 BuildRequires: glib2-devel
 BuildRequires: vectorscan-devel
