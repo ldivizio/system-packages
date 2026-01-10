@@ -64,7 +64,8 @@ jobs:
         run: |
           if [ -d "${{ inputs.package }}/sources" ]; then
             echo "Copying sources from ${{ inputs.package }}/sources"
-            cp -r ${{ inputs.package }}/sources/* /root/rpmbuild/SOURCES/
+            cp ${{ inputs.package }}/sources/* /root/rpmbuild/SOURCES/
+            ls -lh /root/rpmbuild/SOURCES/
           else
             echo "No sources directory found for ${{ inputs.package }}"
           fi
