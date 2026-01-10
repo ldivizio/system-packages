@@ -12,6 +12,7 @@ License: LicenseRef-Callaway-BSD
 URL:     https://www.vectorcamp.gr/project/vectorscan
 Source0: https://github.com/VectorCamp/%{name}/archive/refs/tags/vectorscan/%{version}.tar.gz
 
+BuildRequires:  gcc-toolset-15-gcc
 BuildRequires:  gcc-toolset-15-gcc-c++
 BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
 BuildRequires:  boost-devel
@@ -60,6 +61,8 @@ needed for developing Vectorscan applications.
 %setup -n %{name}-%{name}-%{version}
 
 %build
+source /opt/rh/gcc-toolset-15/enable
+
 # LTO seems to be losing the target prefix on ifunc targets leading to
 # multiply defined symbols.  This seems like a GCC bug
 # Disable LTO

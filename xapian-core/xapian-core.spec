@@ -46,6 +46,8 @@ files needed for building packages which use Xapian
 %autosetup -p1
 
 %build
+source /opt/rh/gcc-toolset-15/enable
+
 %configure
 
 %{make_build}

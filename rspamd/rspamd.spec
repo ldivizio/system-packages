@@ -53,6 +53,8 @@ with big amount of mail and can be easily extended with own filters written in
 lua.
 
 %prep
+source /opt/rh/gcc-toolset-15/enable
+
 %setup -n %{name}-%{version} -q
 
 rm -rf centos

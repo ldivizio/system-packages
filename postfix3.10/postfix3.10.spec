@@ -71,10 +71,10 @@ Patch3:  postfix-3.9.0-alternatives.patch
 Patch4:  postfix-3.8.0-large-fs.patch
 Patch11: postfix-3.4.4-chroot-example-fix.patch
 Patch12: postfix-3.10-bool.patch
-
 Patch90: postfix-3.8.6-rh-gcc.patch
 
-# Determine the different packages required for building postfix
+BuildRequires:  gcc-toolset-15-gcc
+BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
 BuildRequires: make
 BuildRequires: perl-generators
 BuildRequires: pkgconfig
@@ -228,6 +228,8 @@ sed -i makedefs -e '\@Linux\.@s|345|3456|'
 sed -i src/util/sys_defs.h -e 's@defined(LINUX5)@defined(LINUX5) || defined(LINUX6)@'
 
 %build
+source /opt/rh/gcc-toolset-15/enable
+
 %set_build_flags
 unset AUXLIBS AUXLIBS_LDAP AUXLIBS_LMDB AUXLIBS_PCRE AUXLIBS_MYSQL AUXLIBS_PGSQL AUXLIBS_SQLITE
 CCARGS="-fPIC -fcommon -std=gnu17"

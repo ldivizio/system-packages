@@ -23,6 +23,7 @@ Patch23: dovecot-2.4.1-nolibotp.patch
 Patch24: dovecot-2.4.2-fixbuild.patch
 
 BuildRequires:  gcc-toolset-15-gcc
+BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
 BuildRequires:  gcc-toolset-15-gcc-c++
 BuildRequires:  openssl-devel
 BuildRequires:  mariadb-connector-c-devel
@@ -262,7 +263,8 @@ Summary: Development files for dovecot
 %setup -q -n %{real_name}-%{version}
 
 %build
-#required for fdpass.c line 125,190: dereferencing type-punned pointer will break strict-aliasing rules
+source /opt/rh/gcc-toolset-15/enable
+
 %global _hardened_build 1
 export CFLAGS="%{__global_cflags} -fno-strict-aliasing -fstack-reuse=none"
 export LDFLAGS="-Wl,-z,now -Wl,-z,relro %{?__global_ldflags}"
