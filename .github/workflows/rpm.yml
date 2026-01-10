@@ -1,0 +1,96 @@
+name: Build RPM Packages
+
+on:
+  workflow_call:
+    inputs:
+      package:
+        required: true
+        type: string
+        description: "Package name to build (e.g., postfix)"
+      version:
+        required: true
+        type: string
+        description: "Version to build (e.g., 3.8.4)"
+  workflow_dispatch:
+    inputs:
+      package:
+        required: true
+        type: string
+        description: "Package name to build (e.g., postfix)"
+      version:
+        required: true
+        type: string
+        description: "Version to build (e.g., 3.8.4)"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-rpm:
+    name: Build ${{ inputs.package }} on RHEL ${{ matrix.rhel_version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        rhel_version: [9, 10]
+
+    container:
+      image: almalinux:${{ matrix.rhel_version }}
+      options: --privileged
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y rpm-build rpmdevtools dnf-plugins-core
+          dnf install -y gcc-toolset-15-gcc gcc-toolset-15-gcc-plugin-annobin gcc-toolset-15-gcc-c++ make tar
+
+      - name: Setup RPM build environment
+        run: |
+          rpmdev-setuptree
+          echo "%_topdir /root/rpmbuild" > ~/.rpmmacros
+
+      - name: Copy SPEC file
+        run: |
+          if [ -f "${{ inputs.package }}/${{ inputs.package }}.spec" ]; then
+            cp ${{ inputs.package }}/${{ inputs.package }}.spec /root/rpmbuild/SPECS/
+          else
+            echo "No SPEC file found for ${{ inputs.package }}"
+            exit 1
+          fi
+      - name: Copy sources to SOURCES directory
+        run: |
+          if [ -d "${{ inputs.package }}/sources" ]; then
+            echo "Copying sources from ${{ inputs.package }}/sources"
+          else
+            echo "No sources directory found for ${{ inputs.package }}"
+          fi
+
+      - name: Install build dependencies from SPEC
+        run: |
+          dnf builddep -y /root/rpmbuild/SPECS/${{ inputs.package }}.spec
+
+      - name: Build RPM
+        run: |
+          rpmbuild -ba /root/rpmbuild/SPECS/${{ inputs.package }}.spec \
+            --define "version ${{ inputs.version }}"
+
+      - name: List built packages
+        run: |
+          echo "=== Built RPMs ==="
+          ls -lh /root/rpmbuild/RPMS/*/
+          echo "=== Built SRPMs ==="
+          ls -lh /root/rpmbuild/SRPMS/
+
+      # - name: Upload RPM artifacts
+      #   uses: actions/upload-artifact@v4.4.3
+      #   with:
+      #     name: ${{ inputs.package }}-${{ inputs.version }}-rhel${{ matrix.rhel_version }}-rpm
+      #     path: |
+      #       /root/rpmbuild/RPMS/*/*.rpm
+      #       /root/rpmbuild/SRPMS/*.rpm
+      #     if-no-files-found: error
+      #     retention-days: 30

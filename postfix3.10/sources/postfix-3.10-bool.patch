@@ -1,0 +1,43 @@
+From 191f5dfa029ea321479942bda1ad4c4d39e9bacf Mon Sep 17 00:00:00 2001
+From: Your Name <your.email@example.com>
+Date: Fri, 5 Dec 2025 00:00:00 +0000
+Subject: [PATCH] Add -DNO_STDBOOL detection and documentation in makedefs
+
+# .IP \fB-DNO_STDBOOL\fR
+#	Don't use <stdbool.h>. This is usually auto-detected.
+
+diff --git a/postfix/makedefs b/postfix/makedefs
+index 06784971064c3378591e8ee48223c3371404f348..191f5dfa029ea321479942bda1ad4c4d39e9bacf 100644
+--- a/makedefs
++++ b/makedefs
+@@ -107,6 +107,8 @@
+ # .IP \fB-DNO_SNPRINTF\fR
+ #	Use sprintf() instead of snprintf(). By default, Postfix
+ #	uses snprintf() except on ancient systems.
++# .IP \fB-DNO_STDBOOL\fR
++#	Don't use <stdbool.h>. This is usually auto-detected.
+ # .RE
+ # .IP \fBDEBUG=\fIdebug_level\fR
+ #	Specifies a non-default debugging level. The default is \fB-g\fR.
+@@ -960,6 +962,21 @@ case "$CCARGS" in
+ 		;;
+ esac
+ 
++# C23 introduces a new built-in type 'bool' which breaks past Postfix
++# practice. Other compilers provide emulation. Don't try to guess where
++# the compiler hides <stbool.h>.
++case "$CCARGS" in
++ *-DNO_STDBOOL*) ;;
++ *) cat >makedefs.test.c <<'EOF'
++#include <stdbool.h>
++bool x;
++EOF
++    ${CC-gcc} -c makedefs.test.c >/dev/null 2>&1 ||
++	CCARGS="$CCARGS -DNO_STDBOOL"
++    rm -f makedefs.test.[co]
++    ;;
++esac
++
+ # Defaults that can be overruled (make makefiles CC=cc OPT=-O6 DEBUG=)
+ # Disable optimizations by default when compiling for Purify. Disable
+ # optimizations by default with gcc 2.8, until the compiler is known to
