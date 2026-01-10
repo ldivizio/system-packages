@@ -1,0 +1,14 @@
+diff -Naurb postfix-3.8.6/makedefs postfix-3.8.6-gcc13/makedefs
+--- postfix-3.8.6/makedefs	2023-04-14 13:37:45.000000000 +0000
++++ postfix-3.8.6-rh-gcc/makedefs	2024-03-12 16:37:33.019428825 +0000
+@@ -195,10 +195,6 @@
+ }
+ 
+ # First, deal with unsupported usage.
+-case "$LD_LIBRARY_PATH" in
+-?*) error "Not supported: building with LD_LIBRARY_PATH";;
+-esac
+-
+ env | grep '^AUXLIBS_' | while read line
+ do
+     case  "$line" in
