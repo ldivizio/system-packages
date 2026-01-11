@@ -1,13 +1,3 @@
-Name:     rspamd
-Version:  3.14.3
-Release:  1%{?dist}
-Summary:  Rapid spam filtering system
-License:  ASL 2.0 and LGPLv3 and BSD and MIT and CC0 and zlib
-URL:      https://www.rspamd.com/
-Source0:  https://github.com/%{name}/%{name}/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
-Source1:  rspamd.sysusers
-Source2:  rspamd.tmpfiles
-
 # see https://bugzilla.redhat.com/show_bug.cgi?id=2043092
 %undefine _package_note_flags
 
@@ -18,6 +8,16 @@ Source2:  rspamd.tmpfiles
 %global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
 %endif
 }
+
+Name:     rspamd
+Version:  3.14.3
+Release:  1%{?dist}
+Summary:  Rapid spam filtering system
+License:  ASL 2.0 and LGPLv3 and BSD and MIT and CC0 and zlib
+URL:      https://www.rspamd.com/
+Source0:  https://github.com/%{name}/%{name}/archive/%{version}.tar.gz#/%{name}-%{version}.tar.gz
+Source1:  rspamd.sysusers
+Source2:  rspamd.tmpfiles
 
 BuildRequires: cmake
 BuildRequires: gcc-toolset-15-gcc
