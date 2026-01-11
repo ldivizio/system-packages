@@ -45,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rhel_version: ${{fromJSON(inputs.rhel_versions) }}
+        rhel_version: ${{ fromJSON(startsWith(inputs.rhel_versions, '[') && inputs.rhel_versions || format('[{0}]', inputs.rhel_versions)) }}
 
     container:
       image: almalinux:${{ matrix.rhel_version }}
