@@ -4,15 +4,13 @@
 %global debug_package   %{nil}
 %define _build_id_links none
 
-
-%global gcc_toolset_ver 15
-%global _gcc_path /opt/rh/gcc-toolset-%{gcc_toolset_ver}/root/usr/bin
-
-%global __cc  %{_gcc_path}/gcc
-%global __cxx %{_gcc_path}/g++
-%global __ld  %{_gcc_path}/ld
-%global __objdump %{_gcc_path}/objdump
-%global __ar  %{_gcc_path}/ar
+%{!?gcc_toolset_enable:
+%if 0%{?rhel} && 0%{?rhel} < 10
+%global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
+%else
+%global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
+%endif
+}
 
 %define real_name dovecot
 %define major_version 2.4
@@ -276,17 +274,15 @@ Summary: Development files for dovecot
 %setup -q -n %{real_name}-%{version}
 
 %build
-%if 0%{?rhel} < 10
-source /opt/rh/gcc-toolset-15/enable
-%else
-source /usr/lib/gcc-toolset/15-env.source
-%endif
+%{gcc_toolset_enable}
+gcc -dumpfullversion | grep -q '^15\.' || \
+  (echo "ERROR: system GCC detected" >&2; exit 1)
 
 %global _hardened_build 1
 export CFLAGS="%{__global_cflags} -fno-strict-aliasing -fstack-reuse=none"
 export LDFLAGS="-Wl,-z,now -Wl,-z,relro %{?__global_ldflags}"
 mkdir -p m4
-autoreconf -I . -fiv #required for aarch64 support
+autoreconf -I . -fiv
 %configure                       \
     INSTALL_DATA="install -c -p -m644" \
     --enable-maintainer-mode     \
@@ -314,6 +310,9 @@ autoreconf -I . -fiv #required for aarch64 support
 %make_build
 
 %install
+%{gcc_toolset_enable}
+gcc -dumpfullversion | grep -q '^15\.' || \
+  (echo "ERROR: system GCC detected" >&2; exit 1)
 rm -rf $RPM_BUILD_ROOT
 
 %make_install
@@ -327,7 +326,6 @@ rm -f $RPM_BUILD_ROOT%{_sysconfdir}/dovecot/README
 install -p -D -m 0644 %{S:1} $RPM_BUILD_ROOT%{_sysusersdir}/dovecot.sysusers
 
 %pre
-#dovecot uid and gid are reserved, see /usr/share/doc/setup-*/uidgid
 %sysusers_create_compat %{S:1}
 
 %files
