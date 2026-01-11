@@ -4,13 +4,14 @@
 %define real_name postfix
 %define pflogsumm_ver 1.1.13
 
-%{!?gcc_toolset_enable:
+%global debug_package %{nil}
+%define _build_id_links none
+
 %if 0%{?rhel} && 0%{?rhel} < 10
 %global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
 %else
 %global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
 %endif
-}
 
 %bcond_with db
 %bcond_without mysql

@@ -1,10 +1,11 @@
-%{!?gcc_toolset_enable:
-%if 0%{?rhel} < 10
+%global debug_package %{nil}
+%define _build_id_links none
+
+%if 0%{?rhel} && 0%{?rhel} < 10
 %global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
 %else
 %global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
 %endif
-}
 
 Name:           fasttext
 Version:        0.9.2
@@ -14,8 +15,10 @@ License:        MIT
 URL:            https://github.com/rspamd/fasttext
 Source0:        %{name}-%{version}.tar.gz
 
+BuildRequires:  gcc-toolset-15-gcc
+BuildRequires:  gcc-toolset-15-gcc-c++
+BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
 BuildRequires:  cmake
-BuildRequires:  gcc
 BuildRequires:  make
 BuildRequires:  pkgconfig
 

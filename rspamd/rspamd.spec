@@ -1,13 +1,14 @@
 # see https://bugzilla.redhat.com/show_bug.cgi?id=2043092
 %undefine _package_note_flags
 
-%{!?gcc_toolset_enable:
+%global debug_package %{nil}
+%define _build_id_links none
+
 %if 0%{?rhel} && 0%{?rhel} < 10
 %global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
 %else
 %global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
 %endif
-}
 
 Name:     rspamd
 Version:  3.14.3
