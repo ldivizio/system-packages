@@ -46,7 +46,6 @@ jobs:
           if [ "${{ matrix.rhel_version }}" = "9" ]; then
             dnf config-manager --set-enabled crb
           fi
-          ls -lh /opt/rh
 
       - name: Setup RPM build environment
         run: |
@@ -77,9 +76,6 @@ jobs:
 
       - name: Build RPM
         run: |
-          if [ "${{ matrix.rhel_version }}" = "9" ]; then
-            source /opt/rh/gcc-toolset-15/enable
-          fi
           rpmbuild -bb "/root/rpmbuild/SPECS/${{ inputs.package }}.spec"
 
       - name: Upload RPM artifacts
