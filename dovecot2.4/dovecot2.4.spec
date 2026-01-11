@@ -1,9 +1,6 @@
 %global __provides_exclude_from %{_docdir}
 %global __requires_exclude_from %{_docdir}
 
-%global debug_package   %{nil}
-%define _build_id_links none
-
 %{!?gcc_toolset_enable:
 %if 0%{?rhel} && 0%{?rhel} < 10
 %global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
@@ -272,14 +269,10 @@ Summary: Development files for dovecot
 
 %prep
 %{gcc_toolset_enable}
-gcc -dumpfullversion | grep -q '^15\.' || \
-  (echo "ERROR: system GCC detected" >&2; exit 1)
 %setup -q -n %{real_name}-%{version}
 
 %build
 %{gcc_toolset_enable}
-gcc -dumpfullversion | grep -q '^15\.' || \
-  (echo "ERROR: system GCC detected" >&2; exit 1)
 
 %global _hardened_build 1
 export CFLAGS="%{__global_cflags} -fno-strict-aliasing -fstack-reuse=none"

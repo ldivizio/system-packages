@@ -4,9 +4,13 @@
 %define real_name postfix
 %define pflogsumm_ver 1.1.13
 
-%global debug_package   %{nil}
-%define _build_id_links none
-
+%{!?gcc_toolset_enable:
+%if 0%{?rhel} && 0%{?rhel} < 10
+%global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
+%else
+%global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
+%endif
+}
 %bcond_with db
 %bcond_without mysql
 %bcond_without pgsql
@@ -223,11 +227,7 @@ sed -i makedefs -e '\@Linux\.@s|345|3456|'
 sed -i src/util/sys_defs.h -e 's@defined(LINUX5)@defined(LINUX5) || defined(LINUX6)@'
 
 %build
-%if 0%{?rhel} < 10
-source /opt/rh/gcc-toolset-15/enable
-%else
-source /usr/lib/gcc-toolset/15-env.source
-%endif
+%{gcc_toolset_enable}
 
 %set_build_flags
 unset AUXLIBS AUXLIBS_LDAP AUXLIBS_LMDB AUXLIBS_PCRE AUXLIBS_MYSQL AUXLIBS_PGSQL AUXLIBS_SQLITE

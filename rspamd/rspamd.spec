@@ -11,8 +11,13 @@ Source2:  rspamd.tmpfiles
 # see https://bugzilla.redhat.com/show_bug.cgi?id=2043092
 %undefine _package_note_flags
 
-%global debug_package   %{nil}
-%define _build_id_links none
+%{!?gcc_toolset_enable:
+%if 0%{?rhel} && 0%{?rhel} < 10
+%global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
+%else
+%global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
+%endif
+}
 
 BuildRequires: cmake
 BuildRequires: gcc-toolset-15-gcc
@@ -53,7 +58,7 @@ with big amount of mail and can be easily extended with own filters written in
 lua.
 
 %prep
-source /opt/rh/gcc-toolset-15/enable
+%{gcc_toolset_enable}
 
 %setup -n %{name}-%{version} -q
 
