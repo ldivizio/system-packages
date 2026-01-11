@@ -512,3 +512,5 @@ install -p -D -m 0644 %{S:1} $RPM_BUILD_ROOT%{_sysusersdir}/dovecot.sysusers
 %files plugin-fs_compress
 %{_libdir}/%{real_name}/libdovecot-compression.so*
 %{_libdir}/%{real_name}/libfs_compress.so
+
+%changelog
