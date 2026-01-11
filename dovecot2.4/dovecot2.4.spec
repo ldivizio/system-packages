@@ -4,6 +4,16 @@
 %global debug_package   %{nil}
 %define _build_id_links none
 
+
+%global gcc_toolset_ver 15
+%global _gcc_path /opt/rh/gcc-toolset-%{gcc_toolset_ver}/root/usr/bin
+
+%global __cc  %{_gcc_path}/gcc
+%global __cxx %{_gcc_path}/g++
+%global __ld  %{_gcc_path}/ld
+%global __objdump %{_gcc_path}/objdump
+%global __ar  %{_gcc_path}/ar
+
 %define real_name dovecot
 %define major_version 2.4
 %define minor_version 2
@@ -37,6 +47,8 @@ BuildRequires:  libzstd-devel
 BuildRequires:  lua-devel
 BuildRequires:  libstemmer-devel
 BuildRequires:  xapian-core-devel
+BuildRequires:  pcre2-devel
+BuildRequires:  libicu-devel
 BuildRequires:  systemd-devel
 
 %description
@@ -279,8 +291,6 @@ autoreconf -I . -fiv #required for aarch64 support
     INSTALL_DATA="install -c -p -m644" \
     --enable-maintainer-mode     \
     --disable-static             \
-    --disable-rpath              \
-    --without-nss                \
     --without-pam                \
     --with-gssapi=no             \
     --with-lua=plugin            \
@@ -290,17 +300,15 @@ autoreconf -I . -fiv #required for aarch64 support
     --with-sqlite                \
     --with-ldap=plugin           \
     --without-cassandra          \
-    --without-zlib               \
     --without-bzlib              \
-    --without-lzma               \
     --without-lz4                \
     --with-zstd                  \
+    --with-pcre2                 \
+    --with-icu                   \
     --with-libcap                \
-    --with-ssl=openssl           \
     --without-solr               \
     --with-stemmer               \
     --with-flatcurve             \
-    --without-docs               \
     --with-systemd
 
 %make_build
