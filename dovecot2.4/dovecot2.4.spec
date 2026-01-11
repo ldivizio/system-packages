@@ -22,6 +22,7 @@ Patch16: dovecot-2.4.1-opensslhmac3.patch
 Patch23: dovecot-2.4.1-nolibotp.patch
 Patch24: dovecot-2.4.2-fixbuild.patch
 
+BuildRequires:  gcc-toolset-15
 BuildRequires:  gcc-toolset-15-gcc
 BuildRequires:  gcc-toolset-15-gcc-c++
 %if 0%{?rhel} < 10

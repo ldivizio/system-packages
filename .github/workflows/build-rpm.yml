@@ -9,6 +9,11 @@ on:
       version:
         required: true
         type: string
+      rhel_versions:
+        required: false
+        type: string
+        default: "[9, 10]"
+        description: "JSON array of RHEL versions to build for"
   workflow_dispatch:
     inputs:
       package:
@@ -19,6 +24,15 @@ on:
         required: true
         type: string
         description: "Build number"
+      rhel_versions:
+        required: false
+        type: choice
+        description: "RHEL versions to build for"
+        default: "[9, 10]"
+        options:
+          - "9"
+          - "10"
+          - "[9, 10]"
 
 permissions:
   contents: write
@@ -31,7 +45,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rhel_version: [9, 10]
+        rhel_version: ${{fromJSON(inputs.rhel_versions) }}
 
     container:
       image: almalinux:${{ matrix.rhel_version }}
