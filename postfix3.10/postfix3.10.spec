@@ -11,6 +11,7 @@
 %global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
 %endif
 }
+
 %bcond_with db
 %bcond_without mysql
 %bcond_without pgsql

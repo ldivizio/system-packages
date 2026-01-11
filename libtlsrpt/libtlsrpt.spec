@@ -1,5 +1,10 @@
-%global debug_package   %{nil}
-%define _build_id_links none
+%{!?gcc_toolset_enable:
+%if 0%{?rhel} && 0%{?rhel} < 10
+%global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
+%else
+%global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
+%endif
+}
 
 Name:     libtlsrpt
 Version:  0.5.0
@@ -30,7 +35,7 @@ developing applications that use %{name}.
 %autosetup
 
 %build
-source /opt/rh/gcc-toolset-15/enable
+%{gcc_toolset_enable}
 
 %configure --disable-static
 %make_build
