@@ -1,5 +1,10 @@
-%global debug_package   %{nil}
-%define _build_id_links none
+%{!?gcc_toolset_enable:
+%if 0%{?rhel} && 0%{?rhel} < 10
+%global gcc_toolset_enable source /opt/rh/gcc-toolset-15/enable
+%else
+%global gcc_toolset_enable source /usr/lib/gcc-toolset/15-env.source
+%endif
+}
 
 Name:           fasttext
 Version:        0.9.2
@@ -42,6 +47,8 @@ developing applications that use %{name}.
 %autosetup
 
 %build
+%{gcc_toolset_enable}
+
 %cmake .
 %cmake_build
 
