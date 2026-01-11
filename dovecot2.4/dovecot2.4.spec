@@ -271,6 +271,9 @@ Summary: Development files for dovecot
 %description devel
 
 %prep
+%{gcc_toolset_enable}
+gcc -dumpfullversion | grep -q '^15\.' || \
+  (echo "ERROR: system GCC detected" >&2; exit 1)
 %setup -q -n %{real_name}-%{version}
 
 %build
