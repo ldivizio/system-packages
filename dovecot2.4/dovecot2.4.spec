@@ -25,9 +25,7 @@ Patch24: dovecot-2.4.2-fixbuild.patch
 BuildRequires:  gcc-toolset-15
 BuildRequires:  gcc-toolset-15-gcc
 BuildRequires:  gcc-toolset-15-gcc-c++
-%if 0%{?rhel} < 11
 BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
-%endif
 BuildRequires:  openssl-devel
 BuildRequires:  mariadb-connector-c-devel
 BuildRequires:  libpq-devel

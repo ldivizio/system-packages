@@ -55,7 +55,6 @@ Requires:  %{name}-lmdb%{?_isa} = %{version}-%{release}
 Requires:  libtlsrpt
 %endif
 
-
 Provides: MTA smtpd smtpdaemon server(smtp)
 Source0:  https://de.postfix.org/ftpmirror/official/%{real_name}-%{version}.tar.gz
 Source1:  https://jimsun.linxnet.com/downloads/pflogsumm-%{pflogsumm_ver}.tar.gz
@@ -73,19 +72,19 @@ Patch11: postfix-3.4.4-chroot-example-fix.patch
 Patch12: postfix-3.10-bool.patch
 Patch90: postfix-3.8.6-rh-gcc.patch
 
+BuildRequires:  gcc-toolset-15
 BuildRequires:  gcc-toolset-15-gcc
 BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
-BuildRequires: make
-BuildRequires: perl-generators
-BuildRequires: pkgconfig
-BuildRequires: zlib-devel
-BuildRequires: systemd-units
-BuildRequires: lmdb-devel
-BuildRequires: gcc
-BuildRequires: m4
-BuildRequires: findutils
-BuildRequires: systemd-rpm-macros
-BuildRequires: sed
+BuildRequires:  make
+BuildRequires:  perl-generators
+BuildRequires:  pkgconfig
+BuildRequires:  zlib-devel
+BuildRequires:  systemd-units
+BuildRequires:  lmdb-devel
+BuildRequires:  m4
+BuildRequires:  findutils
+BuildRequires:  systemd-rpm-macros
+BuildRequires:  sed
 
 %{?with_ldap:BuildRequires: openldap-devel}
 %{?with_pcre:BuildRequires: pcre2-devel}
@@ -205,12 +204,8 @@ maps with Postfix, you need this.
 %patch -P2 -p1 -b .files
 %patch -P3 -p1 -b .alternatives
 %patch -P4 -p1 -b .large-fs
-	
 %patch -P11 -p1 -b .chroot-example-fix
 %patch -P12 -p1 -b .bool
-
-#%patch -P14 -p1 -b .openssl-no-engine
-
 %patch -P90 -p1 -b .rh-gcc
 
 # Change DEF_SHLIB_DIR according to build host
@@ -228,7 +223,11 @@ sed -i makedefs -e '\@Linux\.@s|345|3456|'
 sed -i src/util/sys_defs.h -e 's@defined(LINUX5)@defined(LINUX5) || defined(LINUX6)@'
 
 %build
+%if 0%{?rhel} < 10
 source /opt/rh/gcc-toolset-15/enable
+%else
+source /usr/lib/gcc-toolset/15-env.source
+%endif
 
 %set_build_flags
 unset AUXLIBS AUXLIBS_LDAP AUXLIBS_LMDB AUXLIBS_PCRE AUXLIBS_MYSQL AUXLIBS_PGSQL AUXLIBS_SQLITE
