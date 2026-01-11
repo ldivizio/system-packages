@@ -268,7 +268,7 @@ Summary: Development files for dovecot
 %if 0%{?rhel} < 10
 source /opt/rh/gcc-toolset-15/enable
 %else
-source %{_libdir}/gcc-toolset/15-env.source
+source /usr/lib/gcc-toolset/15-env.source
 %endif
 
 %global _hardened_build 1
