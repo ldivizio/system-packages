@@ -2,7 +2,7 @@
 %undefine _strict_symbol_defs_build
 
 %define real_name postfix
-%define pflogsumm_ver 1.1.13
+%define pflogsumm_ver 1.1.14
 
 %global debug_package %{nil}
 %define _build_id_links none
