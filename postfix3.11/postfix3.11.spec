@@ -75,7 +75,6 @@ Patch2:  postfix-3.9.0-files.patch
 Patch3:  postfix-3.9.0-alternatives.patch
 Patch4:  postfix-3.8.0-large-fs.patch
 Patch11: postfix-3.4.4-chroot-example-fix.patch
-#Patch12: postfix-3.10-bool.patch
 Patch90: postfix-3.8.6-rh-gcc.patch
 
 BuildRequires:  gcc-toolset-15
@@ -211,7 +210,6 @@ maps with Postfix, you need this.
 %patch -P3 -p1 -b .alternatives
 %patch -P4 -p1 -b .large-fs
 %patch -P11 -p1 -b .chroot-example-fix
-#%patch -P12 -p1 -b .bool
 %patch -P90 -p1 -b .rh-gcc
 
 # Change DEF_SHLIB_DIR according to build host
@@ -238,7 +236,7 @@ export OPT="%{__global_cflags} -fno-strict-aliasing -fstack-reuse=none"
 AUXLIBS=""
 
 # Legacy options
-CCARGS="${CCARGS} -DNO_DB default_database_type=lmdb default_cache_db_type=lmdb -DNO_NIS -DNO_NISPLUS"
+CCARGS="${CCARGS} -DNO_DB -DNO_NIS -DNO_NISPLUS"
 
 # Set LMDB as default db
 CCARGS="${CCARGS} -DHAS_LMDB -DDEF_DB_TYPE=\\\"lmdb\\\""
@@ -304,6 +302,7 @@ LDFLAGS="$LDFLAGS %{?_hardened_build:-Wl,-z,relro,-z,now}"
 # ignores them. Adding LDFLAGS to SHLIB_RPATH is currently the only
 # way how to get them in
 make -f Makefile.init makefiles shared=yes dynamicmaps=yes \
+  default_database_type=lmdb default_cache_db_type=lmdb \
   %{?_hardened_build:pie=yes} CCARGS="${CCARGS}" AUXLIBS="${AUXLIBS}" \
   AUXLIBS_LDAP="${AUXLIBS_LDAP}" AUXLIBS_LMDB="${AUXLIBS_LMDB}" \
   AUXLIBS_PCRE="${AUXLIBS_PCRE}" AUXLIBS_MYSQL="${AUXLIBS_MYSQL}" \
