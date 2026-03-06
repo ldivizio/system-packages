@@ -75,7 +75,7 @@ Patch2:  postfix-3.9.0-files.patch
 Patch3:  postfix-3.9.0-alternatives.patch
 Patch4:  postfix-3.8.0-large-fs.patch
 Patch11: postfix-3.4.4-chroot-example-fix.patch
-Patch12: postfix-3.10-bool.patch
+#Patch12: postfix-3.10-bool.patch
 Patch90: postfix-3.8.6-rh-gcc.patch
 
 BuildRequires:  gcc-toolset-15
@@ -211,7 +211,7 @@ maps with Postfix, you need this.
 %patch -P3 -p1 -b .alternatives
 %patch -P4 -p1 -b .large-fs
 %patch -P11 -p1 -b .chroot-example-fix
-%patch -P12 -p1 -b .bool
+#%patch -P12 -p1 -b .bool
 %patch -P90 -p1 -b .rh-gcc
 
 # Change DEF_SHLIB_DIR according to build host
