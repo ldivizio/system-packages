@@ -20,35 +20,34 @@ Source0:  https://github.com/%{name}/%{name}/archive/%{version}.tar.gz#/%{name}-
 Source1:  rspamd.sysusers
 Source2:  rspamd.tmpfiles
 
-BuildRequires: cmake
-BuildRequires: gcc-toolset-15-gcc
-BuildRequires: gcc-toolset-15-gcc-c++
-BuildRequires: gcc-toolset-15-gcc-plugin-annobin
-BuildRequires: file-devel
-BuildRequires: glib2-devel
-BuildRequires: vectorscan-devel
-BuildRequires: libcurl-devel
-BuildRequires: libicu-devel
-BuildRequires: libsodium-devel
-BuildRequires: openblas-devel
-BuildRequires: lapack-devel
-BuildRequires: openssl-devel
-BuildRequires: pcre2-devel
-BuildRequires: libzstd-devel
-BuildRequires: ragel-devel
-BuildRequires: fasttext-devel
-BuildRequires: perl
-BuildRequires: perl-Digest-MD5
-BuildRequires: systemd-units
-BuildRequires: systemd-rpm-macros
-BuildRequires: sqlite-devel
-BuildRequires: zlib-devel
-BuildRequires: libarchive-devel
+BuildRequires:  cmake
+BuildRequires:  gcc-toolset-15-gcc-c++
+BuildRequires:  gcc-toolset-15-gcc-plugin-annobin
+BuildRequires:  file-devel
+BuildRequires:  glib2-devel
+BuildRequires:  vectorscan-devel
+BuildRequires:  libcurl-devel
+BuildRequires:  libicu-devel
+BuildRequires:  libsodium-devel
+BuildRequires:  openblas-devel
+BuildRequires:  lapack-devel
+BuildRequires:  openssl-devel
+BuildRequires:  pcre2-devel
+BuildRequires:  libzstd-devel
+BuildRequires:  ragel
+BuildRequires:  fasttext-devel
+BuildRequires:  perl
+BuildRequires:  perl-Digest-MD5
+BuildRequires:  systemd-units
+BuildRequires:  systemd-rpm-macros
+BuildRequires:  sqlite-devel
+BuildRequires:  zlib-devel
+BuildRequires:  libarchive-devel
 
-Requires: vectorscan
-Requires: openblas
-Requires: zlib
-Requires: fasttext-libs
+Requires:  vectorscan
+Requires:  openblas
+Requires:  zlib
+Requires:  fasttext-libs
 
 %{?systemd_requires}
 %{?sysusers_requires_compat}
@@ -59,27 +58,22 @@ with big amount of mail and can be easily extended with own filters written in
 lua.
 
 %prep
-%{gcc_toolset_enable}
-
 %setup -n %{name}-%{version} -q
-
-rm -rf centos
-rm -rf debian
-rm -rf docker
-rm -rf freebsd
 
 rm -fr %{_builddir}/luajit-src || true
 rm -fr %{_builddir}/luajit-build || true
 git clone -b v2.1 https://luajit.org/git/luajit-2.0.git %{_builddir}/luajit-src
+
+%{gcc_toolset_enable}
 
 pushd %{_builddir}/luajit-src && make clean && make %{?_smp_mflags} CC="gcc -fPIC" PREFIX=%{_builddir}/luajit-build && make install PREFIX=%{_builddir}/luajit-build
 popd
 rm -f %{_builddir}/luajit-build/lib/*.so || true
 
 %cmake \
-  -DDEBIAN_BUILD=0 \
   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
   -DENABLE_LTO=ON \
+  -DDEBIAN_BUILD=0 \
   -DLINKER_NAME=/usr/bin/ld.bfd \
   -DNO_SHARED=ON \
   -DCONFDIR=%{_sysconfdir}/%{name} \
@@ -126,6 +120,7 @@ install -p -D -m 0644 %{SOURCE2} %{buildroot}%{_tmpfilesdir}/%{name}.conf
 
 %{_bindir}/rspam{adm,c,d}{,-%{version}}
 %{_bindir}/rspamd_stats
+%{_bindir}/mapstats
 %dir %{_datadir}/%{name}
 %{_datadir}/%{name}/effective_tld_names.dat
 %dir %{_datadir}/%{name}/{languages,plugins,rules,rules/controller,rules/regexp,lualib}

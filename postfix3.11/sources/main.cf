@@ -1,0 +1,4 @@
+readme_directory = no
+sample_directory = no
+
+compatibility_level = 3.6
