@@ -423,6 +423,7 @@ popd
  
 %exclude %{postfix_daemon_dir}/oqmgr
 %exclude %{postfix_daemon_dir}/nqmgr
+%exclude %{postfix_daemon_dir}/postfix-non-bdb-script
 
 %attr(0755, root, root) %{postfix_command_dir}/postalias
 %attr(0755, root, root) %{postfix_command_dir}/postcat
