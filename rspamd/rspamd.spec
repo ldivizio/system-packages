@@ -11,7 +11,7 @@
 %endif
 
 Name:     rspamd
-Version:  3.14.3
+Version:  4.0.0
 Release:  1%{?dist}
 Summary:  Rapid spam filtering system
 License:  ASL 2.0 and LGPLv3 and BSD and MIT and CC0 and zlib
@@ -35,7 +35,6 @@ BuildRequires:  openssl-devel
 BuildRequires:  pcre2-devel
 BuildRequires:  libzstd-devel
 BuildRequires:  ragel
-BuildRequires:  fasttext-devel
 BuildRequires:  perl
 BuildRequires:  perl-Digest-MD5
 BuildRequires:  systemd-units
@@ -47,7 +46,6 @@ BuildRequires:  libarchive-devel
 Requires:  vectorscan
 Requires:  openblas
 Requires:  zlib
-Requires:  fasttext-libs
 
 %{?systemd_requires}
 %{?sysusers_requires_compat}
@@ -90,13 +88,14 @@ rm -f %{_builddir}/luajit-build/lib/*.so || true
   -DENABLE_HYPERSCAN=ON \
   -DENABLE_LUAJIT=ON \
   -DLUA_ROOT=%{_builddir}/luajit-build \
-  -DENABLE_FASTTEXT=ON \
   -DENABLE_JEMALLOC=ON \
   -DENABLE_OPTIMIZATION=ON \
+  -DENABLE_SNOWBALL=ON \
   -DENABLE_PCRE2=ON \
   -DSYSTEM_ZSTD=ON \
   -DENABLE_BLAS=ON \
   -DINSTALL_WEBUI=OFF \
+  -DINSTALL_EXAMPLES=OFF \
   -DRSPAMD_USER=%{name}
 %cmake_build
 
